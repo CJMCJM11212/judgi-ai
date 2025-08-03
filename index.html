@@ -231,6 +231,7 @@
 
         // --- Global State & Firebase ---
         let db;
+        let appId;
         let state = {
             disputeId: null,
             nameMe: "나",
@@ -259,6 +260,7 @@
                     throw new Error("Firebase config not found.");
                 }
                 const firebaseConfig = JSON.parse(__firebase_config);
+                appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 const auth = getAuth(app);
@@ -288,7 +290,7 @@
                     showMessage("데이터베이스 연결에 실패했습니다. 새로고침 해주세요.", true);
                     return;
                 }
-                const docRef = doc(db, "disputes", state.disputeId);
+                const docRef = doc(db, `artifacts/${appId}/public/data/disputes`, state.disputeId);
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
@@ -356,7 +358,8 @@
             }
             
             try {
-                const docRef = await addDoc(collection(db, "disputes"), {
+                const disputesCollectionPath = `artifacts/${appId}/public/data/disputes`;
+                const docRef = await addDoc(collection(db, disputesCollectionPath), {
                     nameA: nameMe,
                     nameB: nameOpponent,
                     storyA: storyA,
@@ -521,7 +524,7 @@ ${storyB}
                 const judgmentData = JSON.parse(judgmentJsonText);
                 
                 // Update the document in Firestore with the result
-                const docRef = doc(db, "disputes", state.disputeId);
+                const docRef = doc(db, `artifacts/${appId}/public/data/disputes`, state.disputeId);
                 await updateDoc(docRef, {
                     storyB: storyB,
                     judgment: judgmentData,
