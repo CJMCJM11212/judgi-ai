@@ -199,7 +199,7 @@
     <script type="module">
         // --- Firebase SDK Imports ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, addDoc, updateDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- DOM Elements ---
@@ -255,13 +255,21 @@
         // --- Firebase Initialization ---
         async function initFirebase() {
             try {
-                // These global variables are provided by the environment.
+                if (typeof __firebase_config === 'undefined') {
+                    throw new Error("Firebase config not found.");
+                }
                 const firebaseConfig = JSON.parse(__firebase_config);
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 const auth = getAuth(app);
-                await signInAnonymously(auth);
-                console.log("Firebase initialized and user signed in anonymously.");
+                
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                    console.log("Firebase initialized and user signed in with custom token.");
+                } else {
+                    await signInAnonymously(auth);
+                    console.log("Firebase initialized and user signed in anonymously.");
+                }
             } catch (error) {
                 console.error("Firebase initialization failed:", error);
                 showMessage("서비스 초기화에 실패했습니다. 새로고침 해주세요.", true);
@@ -276,14 +284,16 @@
             state.disputeId = params.get('id');
 
             if (state.disputeId) {
-                // This is a shared link (either for B to input, or to view result)
+                if (!db) {
+                    showMessage("데이터베이스 연결에 실패했습니다. 새로고침 해주세요.", true);
+                    return;
+                }
                 const docRef = doc(db, "disputes", state.disputeId);
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     if (data.status === 'complete') {
-                        // Result view
                         state.nameMe = data.nameA;
                         state.nameOpponent = data.nameB;
                         aiJudgmentContainer.innerHTML = createResultHtmlFromJson(data.judgment, data.nameA, data.nameB);
@@ -292,7 +302,6 @@
                         document.getElementById('result-buttons').style.display = 'none';
                         showPage('page-result');
                     } else {
-                        // B's input view
                         state.storyA = data.storyA;
                         state.nameMe = data.nameB;
                         state.nameOpponent = data.nameA;
@@ -307,7 +316,6 @@
                     showPage('page-a-input');
                 }
             } else {
-                // Start new dispute
                 showPage('page-a-input');
             }
         }
@@ -334,6 +342,10 @@
         });
 
         submitAButton.addEventListener('click', async () => {
+            if (!db) {
+                showMessage("데이터베이스에 연결되지 않았습니다. 잠시 후 다시 시도해주세요.", true);
+                return;
+            }
             const storyA = storyAInput.value.trim();
             const nameMe = nameMeInputA.value.trim();
             const nameOpponent = nameOpponentInputA.value.trim();
