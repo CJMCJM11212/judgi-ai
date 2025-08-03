@@ -286,7 +286,8 @@
             
             // The API key provided by the user.
             const apiKey = "AIzaSyAsGXTqp5L0pTc-FFWV63yJ-ofKV8Xm_Gw"; 
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-1.5:generateContent?key=${apiKey}`;
+            // Changed model to gemini-2.5-pro as requested
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
 
             const prompt = `당신은 매우 공정하고 객관적인 AI 심판입니다. 당신의 임무는 A와 B 사이의 다음 분쟁을 분석하는 것입니다. 당신의 판단은 편파적이지 않고, 일반적인 사회 통념, 상식, 그리고 법적, 도덕적 원칙에 근거해야 합니다.
 
