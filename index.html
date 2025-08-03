@@ -200,8 +200,6 @@
         const resultCardContent = document.getElementById('result-card-content');
 
         // --- Global State ---
-        // The state object will consistently hold the data for the entire dispute.
-        // nameA is always the first user, nameB is the second.
         let state = {};
 
         // --- Utility Functions ---
@@ -223,9 +221,8 @@
             const data = params.get('data');
 
             try {
-                if (data) { // This is User B, loading the page from a link.
+                if (data) {
                     const linkData = JSON.parse(decodeURIComponent(atob(data)));
-                    // Store the received data in the global state.
                     state = {
                         nameA: linkData.nameA,
                         nameB: linkData.nameB,
@@ -233,13 +230,12 @@
                         storyB: ''
                     };
                     
-                    // Set up UI for User B.
-                    nameMeInputB.value = state.nameB; // B's own name
-                    nameOpponentDisplayB.textContent = state.nameA; // A's name
+                    nameMeInputB.value = state.nameB;
+                    nameOpponentDisplayB.textContent = state.nameA;
                     storyADisplay.textContent = state.storyA;
                     showPage('page-b-input');
-                } else { // This is User A, starting a new dispute.
-                    state = {}; // Reset state
+                } else {
+                    state = {};
                     showPage('page-a-input');
                 }
             } catch (e) {
@@ -266,7 +262,6 @@
                 showMessage("서로 다른 이름을 입력해주세요.", true); return;
             }
 
-            // Create a clean data object for the link.
             const linkData = { nameA, nameB, storyA };
             const encoded = btoa(encodeURIComponent(JSON.stringify(linkData)));
             const link = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
@@ -277,17 +272,15 @@
 
         submitBButton.addEventListener('click', () => {
             const storyB = storyBInput.value.trim();
-            const updatedNameB = nameMeInputB.value.trim(); // User B might have edited their name.
+            const updatedNameB = nameMeInputB.value.trim();
             
             if (!storyB) {
                 showMessage("당신의 이야기를 입력해주세요.", true); return;
             }
             
-            // Update state with B's final name and story before calling the AI.
             state.nameB = updatedNameB;
             state.storyB = storyB;
 
-            // Call judgment with the consistent state data.
             getAiJudgment(state.storyA, state.storyB, state.nameA, state.nameB); 
         });
 
@@ -298,10 +291,10 @@
         saveResultAsImageButton.addEventListener('click', () => {
             showMessage("이미지 생성 중입니다. 잠시만 기다려주세요...");
             const buttons = resultCardContent.querySelector('#result-buttons');
-            buttons.style.display = 'none'; // Hide buttons in the screenshot
+            buttons.style.display = 'none';
 
             html2canvas(resultCardContent, {
-                scale: 2, // Higher resolution
+                scale: 2,
                 useCORS: true,
                 backgroundColor: '#ffffff',
             }).then(canvas => {
@@ -309,7 +302,7 @@
                 link.download = 'AI_분쟁_해결_결과.png';
                 link.href = canvas.toDataURL('image/png');
                 link.click();
-                buttons.style.display = 'flex'; // Show buttons again
+                buttons.style.display = 'flex';
                 showMessage("이미지가 저장되었습니다!");
             }).catch(err => {
                 console.error("Image generation failed:", err);
@@ -351,7 +344,8 @@
                 { title: '최종 결론', content: conclusion, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>` }
             ];
 
-            return `<div class="space-y-6 bg-slate-100 p-6 rounded-2xl border border-slate-200"><div><div class="flex items-center justify-between mb-2 text-base font-bold"><span class="text-blue-600">${nameA} 책임</span><span class="text-red-600">${nameB} 책임</span></div><div class="w-full bg-gray-200 rounded-full h-8 flex overflow-hidden border-2 border-white shadow-inner"><div class="bg-blue-500 h-full flex items-center justify-center text-white font-bold text-sm" style="width: ${responsibilityA}%">${responsibilityA > 0 ? responsibilityA + '%' : ''}</div><div class="bg-red-500 h-full flex items-center justify-center text-white font-bold text-sm" style="width: ${responsibilityB}%">${responsibilityB > 0 ? responsibilityB + '%' : ''}</div></div></div>${analysisCards.map(card => `<div class="p-5 bg-white rounded-xl border shadow-sm"><h4 class="text-lg font-bold text-gray-800 mb-3 flex items-center">${card.icon}${card.title}</h4><div class="text-gray-600 leading-relaxed space-y-2 text-sm">${card.content.replace(/\n/g, '<br>')}</div></div>`).join('')}</div>`;
+            // FIX: Added inline style 'line-height: 2rem' to vertically center the text in the responsibility bar.
+            return `<div class="space-y-6 bg-slate-100 p-6 rounded-2xl border border-slate-200"><div><div class="flex items-center justify-between mb-2 text-base font-bold"><span class="text-blue-600">${nameA} 책임</span><span class="text-red-600">${nameB} 책임</span></div><div class="w-full bg-gray-200 rounded-full h-8 flex overflow-hidden border-2 border-white shadow-inner"><div class="bg-blue-500 h-full flex items-center justify-center text-white font-bold text-sm" style="width: ${responsibilityA}%; line-height: 2rem;">${responsibilityA > 0 ? responsibilityA + '%' : ''}</div><div class="bg-red-500 h-full flex items-center justify-center text-white font-bold text-sm" style="width: ${responsibilityB}%; line-height: 2rem;">${responsibilityB > 0 ? responsibilityB + '%' : ''}</div></div></div>${analysisCards.map(card => `<div class="p-5 bg-white rounded-xl border shadow-sm"><h4 class="text-lg font-bold text-gray-800 mb-3 flex items-center">${card.icon}${card.title}</h4><div class="text-gray-600 leading-relaxed space-y-2 text-sm">${card.content.replace(/\n/g, '<br>')}</div></div>`).join('')}</div>`;
         }
 
         // --- AI API Call ---
