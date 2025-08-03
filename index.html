@@ -128,10 +128,10 @@
         <div id="page-b-input" class="page">
             <div class="card space-y-6">
                  <div class="p-4 bg-slate-50 rounded-lg">
-                       <div class="flex items-center space-x-2">
-                           <input id="name-me-input-b" class="name-input" value="나">
-                           <span class="text-2xl font-bold text-gray-600">의 의견</span>
-                       </div>
+                         <div class="flex items-center space-x-2">
+                             <input id="name-me-input-b" class="name-input" value="나">
+                             <span class="text-2xl font-bold text-gray-600">의 의견</span>
+                         </div>
                  </div>
                 <div class="p-4 bg-slate-50 rounded-lg">
                     <h3 class="font-bold text-lg text-gray-700 mb-2"><span id="name-opponent-display-b">상대</span>의 의견</h3>
@@ -181,7 +181,8 @@
     <script type="module">
         // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, doc, addDoc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, addDoc, getDoc, updateDoc, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- DOM Elements ---
         const pages = document.querySelectorAll('.page');
@@ -207,20 +208,10 @@
         const resultTitleContainer = document.getElementById('result-title-container');
         const resultCardContent = document.getElementById('result-card-content');
 
-        // --- Firebase Config ---
-        // IMPORTANT: Replace with your actual Firebase config
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
-        
         // --- Global State ---
         let disputeId = null;
-        let db;
+        let db, auth;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'ai-judge-21e60';
 
         // --- Utility Functions ---
         function showPage(pageId) {
@@ -252,11 +243,30 @@
         // --- Core Logic ---
         async function initialize() {
             try {
-                // Initialize Firebase
+                // Use the provided firebase config if available, otherwise use the hardcoded one.
+                const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+                    apiKey: "YOUR_API_KEY", // This remains a fallback.
+                    authDomain: "ai-judge-21e60.firebaseapp.com",
+                    projectId: "ai-judge-21e60",
+                    storageBucket: "ai-judge-21e60.appspot.com",
+                    messagingSenderId: "685131448318",
+                    appId: "1:685131448318:web:aab1773aed2df0011ccaaf"
+                };
+                
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
+                auth = getAuth(app);
+                setLogLevel('debug');
+
+                // Sign in the user
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
             } catch (error) {
-                console.error("Firebase 초기화 실패:", error);
+                console.error("Firebase initialization failed:", error);
                 showMessage("서비스를 시작할 수 없습니다. 나중에 다시 시도해주세요.", true);
                 return;
             }
@@ -274,26 +284,31 @@
         async function loadDispute(id) {
             showPage('page-loading');
             try {
-                const docRef = doc(db, "disputes", id);
+                const docRef = doc(db, "artifacts", appId, "public/data/disputes", id);
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     
                     if (data.status === 'resolved') {
-                        // Display result directly
                         aiJudgmentContainer.innerHTML = createResultHtmlFromJson(data.judgment, data.nameA, data.nameB);
                         resultTitleContainer.innerHTML = createResultTitle(data.judgment, data.nameA, data.nameB);
                         showPage('page-result');
                     } else if (data.status === 'pending_b') {
-                        // Show B's input page
                         nameMeInputB.value = data.nameB;
                         nameOpponentDisplayB.textContent = data.nameA;
                         storyADisplay.textContent = data.storyA;
                         showPage('page-b-input');
                     } else {
                          showMessage("이미 분석이 진행중이거나 완료된 분쟁입니다.", false);
-                         showPage('page-result'); // Or a waiting page
+                         // Potentially show a waiting page or the result if available
+                         if(data.judgment) {
+                            aiJudgmentContainer.innerHTML = createResultHtmlFromJson(data.judgment, data.nameA, data.nameB);
+                            resultTitleContainer.innerHTML = createResultTitle(data.judgment, data.nameA, data.nameB);
+                            showPage('page-result');
+                         } else {
+                            showPage('page-a-input');
+                         }
                     }
                 } else {
                     showMessage("해당 분쟁을 찾을 수 없습니다. 링크가 올바른지 확인해주세요.", true);
@@ -301,7 +316,7 @@
                     showPage('page-a-input');
                 }
             } catch (error) {
-                console.error("분쟁 로딩 실패:", error);
+                console.error("Dispute loading failed:", error);
                 showMessage("분쟁 정보를 불러오는 데 실패했습니다.", true);
                 showPage('page-a-input');
             }
@@ -329,7 +344,8 @@
             submitAButton.textContent = "생성 중...";
 
             try {
-                const docRef = await addDoc(collection(db, "disputes"), {
+                const disputesCollection = collection(db, "artifacts", appId, "public/data/disputes");
+                const docRef = await addDoc(disputesCollection, {
                     nameA,
                     nameB,
                     storyA,
@@ -343,7 +359,7 @@
                 showPage('page-a-link');
 
             } catch (error) {
-                console.error("분쟁 생성 실패:", error);
+                console.error("Dispute creation failed:", error);
                 showMessage("링크 생성에 실패했습니다. 다시 시도해주세요.", true);
             } finally {
                 submitAButton.disabled = false;
@@ -360,7 +376,7 @@
             }
             
             try {
-                const docRef = doc(db, "disputes", disputeId);
+                const docRef = doc(db, "artifacts", appId, "public/data/disputes", disputeId);
                 const docSnap = await getDoc(docRef);
                 if (!docSnap.exists()) throw new Error("Dispute not found");
 
@@ -375,7 +391,7 @@
                 getAiJudgment(originalData.storyA, storyB, originalData.nameA, updatedNameB);
 
             } catch (error) {
-                console.error("분쟁 제출 실패:", error);
+                console.error("Dispute submission failed:", error);
                 showMessage("정보 제출에 실패했습니다. 다시 시도해주세요.", true);
             }
         });
@@ -398,7 +414,7 @@
                 link.download = 'AI_분쟁_해결_결과.png';
                 link.href = canvas.toDataURL('image/png');
                 link.click();
-                buttons.style.display = 'flex';
+                buttons.style.display = 'flex'; // Use flex for consistency with the layout
                 showMessage("이미지가 저장되었습니다!");
             }).catch(err => {
                 console.error("Image generation failed:", err);
@@ -421,14 +437,16 @@
             const { responsibilityA, responsibilityB } = data;
             let winner, loser, titleHtml;
             
+            // Determine who has more responsibility. The one with more is the 'winner' in the context of being assigned more blame.
             if (responsibilityA > responsibilityB) {
                 winner = nameA; loser = nameB;
                 titleHtml = `<h2 class="text-3xl font-bold text-gray-800">AI 분석 결과, 본 분쟁의 주된 책임은 <span class="text-blue-600">${winner}</span>님에게 있습니다.</h2><p class="text-gray-600 mt-2"><span class="font-bold">${loser}</span>님에게 정중히 사과하고, 갈등 해결을 위해 노력하는 것을 권고합니다.</p>`;
             } else if (responsibilityB > responsibilityA) {
                 winner = nameB; loser = nameA;
-                titleHtml = `<h2 class="text-3xl font-bold text-gray-800">AI 분석 결과, 본 분쟁의 주된 책임은 <span class="text-red-600">${winner}</span>님에게 있습니다.</h2><p class="text-gray-600 mt-2"><span class="font-bold">${loser}</span>님에게 정중히 사과하고, 갈등 해결을 위해 노력하는 것을 권고합니다.</p>`;
+                // Note: The original code had red for B, which might be confusing. Let's stick to a consistent color for the person with more responsibility.
+                titleHtml = `<h2 class="text-3xl font-bold text-gray-800">AI 분석 결과, 본 분쟁의 주된 책임은 <span class="text-blue-600">${winner}</span>님에게 있습니다.</h2><p class="text-gray-600 mt-2"><span class="font-bold">${loser}</span>님에게 정중히 사과하고, 갈등 해결을 위해 노력하는 것을 권고합니다.</p>`;
             } else {
-                 titleHtml = `<h2 class="text-3xl font-bold text-gray-800">본 분쟁은 <span class="text-yellow-500">양측 모두에게 책임</span>이 있는 것으로 판단됩니다.</h2><p class="text-gray-600 mt-2">서로의 입장을 이해하고 원만하게 대화로 해결하시기를 바랍니다.</p>`;
+                 titleHtml = `<h2 class="text-3xl font-bold text-gray-800">본 분쟁은 <span class="text-green-600">양측 모두에게 동등한 책임</span>이 있는 것으로 판단됩니다.</h2><p class="text-gray-600 mt-2">서로의 입장을 이해하고 원만하게 대화로 해결하시기를 바랍니다.</p>`;
             }
             return titleHtml;
         }
@@ -450,9 +468,9 @@
         async function getAiJudgment(storyA, storyB, nameA, nameB) {
             showPage('page-loading');
             
-            // IMPORTANT: Replace with your actual Gemini API Key
-            const apiKey = "YOUR_GEMINI_API_KEY";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+            // Apply the user-provided Gemini API key and model.
+            const apiKey = "AIzaSyDHiqgZsHKQAw8ce7N3nuRcdpWqnYKgIpY"; 
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
 
             const prompt = `
 너는 극도로 정교하고 중립적인 'AI 분쟁 조정관'이다. 당신의 유일한 임무는 ${nameA}와 ${nameB} 사이의 갈등을 사실관계에만 입각하여 법률적, 논리적으로 분석하는 것이다.
@@ -511,7 +529,7 @@ ${storyB}
                 const judgmentData = JSON.parse(judgmentJsonText);
                 
                 // Save result to Firestore
-                const docRef = doc(db, "disputes", disputeId);
+                const docRef = doc(db, "artifacts", appId, "public/data/disputes", disputeId);
                 await updateDoc(docRef, {
                     judgment: judgmentData,
                     status: 'resolved'
@@ -523,7 +541,7 @@ ${storyB}
                 showPage('page-result');
 
             } catch (error) {
-                console.error("AI 판단 요청 중 오류 발생:", error);
+                console.error("AI judgment request error:", error);
                 showMessage(`AI 분석 중 오류가 발생했습니다: ${error.message}`, true, 6000);
                 // Go back to B's input page on failure
                 showPage('page-b-input'); 
