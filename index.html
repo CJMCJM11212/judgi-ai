@@ -88,8 +88,8 @@
 
         <!-- Page 1: A's Input -->
         <div id="page-a-input" class="page active">
-            <div class="card">
-                <div class="flex items-center justify-between mb-4">
+            <div class="card space-y-6">
+                <div class="p-4 bg-slate-50 rounded-lg">
                      <div class="flex items-center">
                         <input id="name-me-input-a" class="name-input" value="나" disabled>
                         <span class="text-2xl font-bold text-gray-600">의 의견</span>
@@ -98,18 +98,18 @@
                         </button>
                     </div>
                 </div>
-                <div class="p-4 bg-slate-50 rounded-lg mb-6">
+                <div class="p-4 bg-slate-50 rounded-lg">
                     <label for="name-opponent-input-a" class="text-gray-600 mb-2 block font-semibold">상대방의 이름을 정해주세요.</label>
                     <input id="name-opponent-input-a" class="name-input text-lg w-full" value="상대">
                 </div>
                 <textarea id="story-a" class="w-full p-4 border border-gray-300 rounded-lg h-48 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50" placeholder="여기에 상황을 입력하세요..."></textarea>
-                <div class="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <label class="flex items-center">
                         <input type="checkbox" id="agree-a" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
                         <span class="ml-3 text-sm text-gray-700">AI 분석 결과, 제가 더 잘못한 것으로 나올 경우 상대방에게 진심어린 사과를 할 것을 약속합니다.</span>
                     </label>
                 </div>
-                <button id="submit-a" class="btn mt-6 w-full" disabled>상대방에게 보낼 링크 생성하기</button>
+                <button id="submit-a" class="btn mt-2 w-full" disabled>상대방에게 보낼 링크 생성하기</button>
             </div>
         </div>
 
@@ -128,8 +128,8 @@
 
         <!-- Page 3: B's Input -->
         <div id="page-b-input" class="page">
-            <div class="card">
-                 <div class="flex items-center justify-between mb-4">
+            <div class="card space-y-6">
+                 <div class="p-4 bg-slate-50 rounded-lg">
                      <div class="flex items-center">
                         <input id="name-me-input-b" class="name-input" value="나" disabled>
                         <span class="text-2xl font-bold text-gray-600">의 의견</span>
@@ -138,18 +138,18 @@
                         </button>
                     </div>
                 </div>
-                <div class="mb-6 p-4 bg-slate-50 rounded-lg">
+                <div class="p-4 bg-slate-50 rounded-lg">
                     <h3 class="font-bold text-lg text-gray-700 mb-2"><span id="name-opponent-display-b">상대</span>의 의견</h3>
                     <div id="story-a-display" class="w-full p-3 border border-gray-200 bg-white rounded-lg h-32 overflow-y-auto text-sm"></div>
                 </div>
                 <textarea id="story-b" class="w-full p-4 border border-gray-300 rounded-lg h-48 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50" placeholder="여기에 당신의 입장을 입력하세요..."></textarea>
-                 <div class="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                 <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <label class="flex items-center">
                         <input type="checkbox" id="agree-b" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
                         <span class="ml-3 text-sm text-gray-700">AI 분석 결과, 제가 더 잘못한 것으로 나올 경우 상대방에게 진심어린 사과를 할 것을 약속합니다.</span>
                     </label>
                 </div>
-                <button id="submit-b" class="btn mt-6 w-full" disabled>AI에게 최종 판단 요청하기</button>
+                <button id="submit-b" class="btn mt-2 w-full" disabled>AI에게 최종 판단 요청하기</button>
             </div>
         </div>
 
@@ -439,7 +439,7 @@
             state.nameMe = nameB; // The current user is B
             state.nameOpponent = nameA;
 
-            const apiKey = ""; // API Key is handled by the environment.
+            const apiKey = "AIzaSyAsGXTqp5L0pTc-FFWV63yJ-ofKV8Xm_Gw";
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
 
             const prompt = `
@@ -510,4 +510,4 @@ ${storyB}
         }
     </script>
 </body>
-</ht
+</html>
