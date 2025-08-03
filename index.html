@@ -402,7 +402,7 @@
             ];
 
             return `
-                <div class="space-y-6 bg-slate-50 p-6 rounded-2xl">
+                <div class="space-y-6 bg-slate-100 p-6 rounded-2xl border border-slate-200">
                     <div>
                         <div class="flex items-center justify-between mb-2 text-base font-bold">
                             <span class="text-blue-600">${nameA} 책임</span>
@@ -439,7 +439,7 @@
             state.nameMe = nameB; // The current user is B
             state.nameOpponent = nameA;
 
-            const apiKey = "AIzaSyAsGXTqp5L0pTc-FFWV63yJ-ofKV8Xm_Gw"; // User-provided API key
+            const apiKey = ""; // API Key is handled by the environment.
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
 
             const prompt = `
@@ -510,4 +510,4 @@ ${storyB}
         }
     </script>
 </body>
-</html>
+</ht
