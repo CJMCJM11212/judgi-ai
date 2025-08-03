@@ -88,11 +88,13 @@
 <body class="flex items-center justify-center min-h-screen p-4">
 
     <div class="w-full max-w-2xl mx-auto">
+        <!-- Header -->
         <header id="main-header" class="text-center mb-8">
             <h1 class="text-5xl font-bold text-gray-800">AI 분쟁 해결사</h1>
             <p class="text-gray-500 mt-3 text-lg">AI가 당신의 갈등 상황을 객관적으로 분석해 드립니다.</p>
         </header>
 
+        <!-- Page 1: A's Input -->
         <div id="page-a-input" class="page active">
             <div class="card space-y-6">
                 <div class="p-4 bg-slate-50 rounded-lg">
@@ -116,6 +118,7 @@
             </div>
         </div>
 
+        <!-- Page 2: Link for B -->
         <div id="page-a-link" class="page">
             <div class="card text-center">
                 <h2 class="text-2xl font-bold text-gray-700 mb-4">링크 생성 완료!</h2>
@@ -128,6 +131,7 @@
             </div>
         </div>
 
+        <!-- Page 3: B's Input -->
         <div id="page-b-input" class="page">
             <div class="card space-y-6">
                  <div class="p-4 bg-slate-50 rounded-lg">
@@ -151,6 +155,7 @@
             </div>
         </div>
 
+        <!-- Page 4: Loading -->
         <div id="page-loading" class="page">
             <div class="card text-center">
                 <div class="flex justify-center items-center mb-6">
@@ -161,6 +166,7 @@
             </div>
         </div>
 
+        <!-- Page 5: Result -->
         <div id="page-result" class="page">
             <div class="card">
                 <div id="result-title-container" class="text-center mb-8"></div>
@@ -172,6 +178,7 @@
             </div>
         </div>
         
+        <!-- Page 6: Share Link -->
         <div id="page-share-link" class="page">
             <div class="card text-center">
                 <h2 class="text-2xl font-bold text-gray-700 mb-4">결과 공유 링크</h2>
@@ -185,6 +192,7 @@
         </div>
 
 
+        <!-- Message Box -->
         <div id="message-box" class="fixed top-5 right-5 bg-green-500 text-white py-2 px-4 rounded-lg shadow-lg" style="display: none;"></div>
         <div id="error-box" class="fixed top-5 right-5 bg-red-500 text-white py-2 px-4 rounded-lg shadow-lg" style="display: none;"></div>
 
@@ -420,23 +428,26 @@
             state.nameOpponent = nameA; 
             state.nameMe = nameB;
 
+            // API Key and URL updated to Gemini 2.5 Pro
             const apiKey = "AIzaSyAbowHACEpR8PyKDxuoDCamj2rWmXUUT2s";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
 
+            // Prompt updated for enhanced objectivity and neutrality
             const prompt = `
-너는 매우 논리적이고 객관적인 'AI 분쟁 해결사'다. 감정적인 표현은 최대한 배제하고, 오직 사실과 논리에 기반하여 ${nameA}와 ${nameB}의 갈등을 분석하고 판결을 내려야 한다.
-책임 비율(responsibilityA, responsibilityB)은 반드시 합쳐서 100이 되도록 정해야 한다.
+너는 고도로 훈련된 'AI 분쟁 조정관'이다. 당신의 임무는 ${nameA}와 ${nameB} 사이의 갈등을 법률적, 논리적 관점에서 극도로 객관적이고 중립적으로 분석하는 것이다.
+추측, 감정적 표현, 개인적 의견을 완전히 배제하고 오직 제시된 사실에만 입각하여 판단해야 한다.
+책임 비율(responsibilityA, responsibilityB)은 반드시 합쳐서 100이 되도록 정밀하게 산정해야 한다.
 답변은 반드시 다음 JSON 형식에 맞춰서, 다른 설명 없이 JSON 객체만 반환해야 한다.
-모든 텍스트는 존댓말로 작성하며, ${nameA}와 ${nameB}라는 이름을 사용해야 한다.
+모든 텍스트는 공식적이고 전문적인 존댓말로 작성하며, ${nameA}와 ${nameB}라는 이름을 사용해야 한다.
 
 {
   "responsibilityA": 0,
   "responsibilityB": 0,
-  "case_summary": "양측의 주장을 바탕으로 감정을 제외하고 사건의 사실 관계를 객관적으로 요약합니다.",
-  "main_issue": "이 분쟁의 핵심 쟁점이 무엇인지 명확히 짚어냅니다.",
-  "analysis_A": "${nameA}의 행동과 주장에서 잘한 점과 잘못한 점을 논리적으로 분석합니다.",
-  "analysis_B": "${nameB}의 행동과 주장에서 잘한 점과 잘못한 점을 논리적으로 분석합니다.",
-  "conclusion": "위 분석을 종합하여, 각자의 책임 소재와 갈등 해결을 위한 최종 결론을 제시합니다."
+  "case_summary": "양측의 주장에서 사실로 확인 가능한 정보만을 추출하여 사건을 재구성합니다.",
+  "main_issue": "이 분쟁의 법적, 논리적 핵심 쟁점이 무엇인지 정의합니다.",
+  "analysis_A": "${nameA}의 행동과 주장을 분쟁의 원인, 과정, 결과에 미친 영향을 중심으로 논리적으로 분석합니다. 귀책 사유가 될 수 있는 부분을 명시합니다.",
+  "analysis_B": "${nameB}의 행동과 주장을 분쟁의 원인, 과정, 결과에 미친 영향을 중심으로 논리적으로 분석합니다. 귀책 사유가 될 수 있는 부분을 명시합니다.",
+  "conclusion": "위 분석을 종합하여, 각자의 책임 소재와 비율을 명시하고, 갈등의 평화로운 해결을 위한 구체적이고 실행 가능한 권고안을 제시합니다."
 }
 
 ---
