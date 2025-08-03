@@ -61,39 +61,46 @@
         #loading-spinner div {
             border-color: #3b82f6 transparent transparent transparent;
         }
+        /* --- UI 개선 사항 적용 --- */
         .name-input {
             border: none;
-            background: transparent;
+            background-color: #e0e7ff; /* Light blue background */
+            color: #3730a3; /* Darker blue text */
             font-weight: bold;
             font-size: 1.5rem;
             line-height: 2rem;
-            color: #1f2937;
+            padding: 0.25rem 0.75rem; /* Vertical and horizontal padding */
+            border-radius: 0.5rem; /* Rounded corners */
             width: auto;
             max-width: 150px;
+            text-align: center;
+            transition: all 0.2s ease;
         }
         .name-input:focus {
             outline: none;
-            border-bottom: 2px solid #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5); /* Focus ring */
+        }
+        .name-input:disabled {
+             background-color: #e5e7eb;
+             color: #4b5563;
         }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4">
 
     <div class="w-full max-w-2xl mx-auto">
-        <!-- Header -->
         <header id="main-header" class="text-center mb-8">
             <h1 class="text-5xl font-bold text-gray-800">AI 분쟁 해결사</h1>
             <p class="text-gray-500 mt-3 text-lg">AI가 당신의 갈등 상황을 객관적으로 분석해 드립니다.</p>
         </header>
 
-        <!-- Page 1: A's Input -->
         <div id="page-a-input" class="page active">
             <div class="card space-y-6">
                 <div class="p-4 bg-slate-50 rounded-lg">
-                     <div class="flex items-center">
-                        <input id="name-me-input-a" class="name-input" value="나" disabled>
+                     <div class="flex items-center space-x-2">
+                        <input id="name-me-input-a" class="name-input" value="나">
                         <span class="text-2xl font-bold text-gray-600">의 의견</span>
-                        <button id="edit-name-me-a" class="ml-2 p-1 text-gray-400 hover:text-blue-500">
+                        <button id="edit-name-me-a" class="ml-2 p-1 text-gray-400 hover:text-blue-500 hidden">
                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"></path></svg>
                         </button>
                     </div>
@@ -113,7 +120,6 @@
             </div>
         </div>
 
-        <!-- Page 2: Link for B -->
         <div id="page-a-link" class="page">
             <div class="card text-center">
                 <h2 class="text-2xl font-bold text-gray-700 mb-4">링크 생성 완료!</h2>
@@ -126,18 +132,17 @@
             </div>
         </div>
 
-        <!-- Page 3: B's Input -->
         <div id="page-b-input" class="page">
             <div class="card space-y-6">
                  <div class="p-4 bg-slate-50 rounded-lg">
-                     <div class="flex items-center">
-                        <input id="name-me-input-b" class="name-input" value="나" disabled>
-                        <span class="text-2xl font-bold text-gray-600">의 의견</span>
-                        <button id="edit-name-me-b" class="ml-2 p-1 text-gray-400 hover:text-blue-500">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"></path></svg>
-                        </button>
-                    </div>
-                </div>
+                     <div class="flex items-center space-x-2">
+                         <input id="name-me-input-b" class="name-input" value="나">
+                         <span class="text-2xl font-bold text-gray-600">의 의견</span>
+                         <button id="edit-name-me-b" class="ml-2 p-1 text-gray-400 hover:text-blue-500 hidden">
+                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"></path></svg>
+                         </button>
+                     </div>
+                 </div>
                 <div class="p-4 bg-slate-50 rounded-lg">
                     <h3 class="font-bold text-lg text-gray-700 mb-2"><span id="name-opponent-display-b">상대</span>의 의견</h3>
                     <div id="story-a-display" class="w-full p-3 border border-gray-200 bg-white rounded-lg h-32 overflow-y-auto text-sm"></div>
@@ -153,7 +158,6 @@
             </div>
         </div>
 
-        <!-- Page 4: Loading -->
         <div id="page-loading" class="page">
             <div class="card text-center">
                 <div class="flex justify-center items-center mb-6">
@@ -164,7 +168,6 @@
             </div>
         </div>
 
-        <!-- Page 5: Result -->
         <div id="page-result" class="page">
             <div class="card">
                 <div id="result-title-container" class="text-center mb-8"></div>
@@ -176,7 +179,6 @@
             </div>
         </div>
         
-        <!-- Page 6: Share Link -->
         <div id="page-share-link" class="page">
             <div class="card text-center">
                 <h2 class="text-2xl font-bold text-gray-700 mb-4">결과 공유 링크</h2>
@@ -190,7 +192,6 @@
         </div>
 
 
-        <!-- Message Box -->
         <div id="message-box" class="fixed top-5 right-5 bg-green-500 text-white py-2 px-4 rounded-lg shadow-lg" style="display: none;"></div>
         <div id="error-box" class="fixed top-5 right-5 bg-red-500 text-white py-2 px-4 rounded-lg shadow-lg" style="display: none;"></div>
 
@@ -231,7 +232,7 @@
             storyA: "",
             storyB: "",
         };
-
+        
         // --- Utility Functions ---
         function showPage(pageId) {
             pages.forEach(page => page.classList.remove('active'));
@@ -259,14 +260,18 @@
             try {
                 if (p.sA && p.sB && p.nM && p.nO && p.sJ) {
                     // Shared result view
-                    state.nameMe = decodeURIComponent(atob(p.nM));
-                    state.nameOpponent = decodeURIComponent(atob(p.nO));
+                    // For shared results, nameMe (nM) is always A, nameOpponent (nO) is always B.
+                    state.nameOpponent = decodeURIComponent(atob(p.nO)); // B's Name
+                    state.nameMe = decodeURIComponent(atob(p.nM)); // A's Name
                     const judgmentData = JSON.parse(decodeURIComponent(atob(p.sJ)));
                     aiJudgmentContainer.innerHTML = createResultHtmlFromJson(judgmentData, state.nameMe, state.nameOpponent);
                     resultTitleContainer.innerHTML = createResultTitle(judgmentData, state.nameMe, state.nameOpponent);
                     document.getElementById('main-header').style.display = 'none';
-                    document.getElementById('result-buttons').style.display = 'none';
+                    // Hide result buttons but show the "start over" button inside the card for shared view
+                    document.getElementById('result-buttons').innerHTML = `<button id="start-over-shared" class="btn btn-secondary w-full">새로운 분쟁 해결하기</button>`;
+                    document.getElementById('start-over-shared').addEventListener('click', () => { window.location.href = window.location.pathname; });
                     showPage('page-result');
+
                 } else if (p.sA && p.nM && p.nO) {
                     // B's input view
                     state.storyA = decodeURIComponent(atob(p.sA));
@@ -289,16 +294,6 @@
         };
 
         // --- Event Listeners ---
-        editNameMeA.addEventListener('click', () => {
-            nameMeInputA.disabled = !nameMeInputA.disabled;
-            nameMeInputA.focus();
-        });
-
-        editNameMeB.addEventListener('click', () => {
-            nameMeInputB.disabled = !nameMeInputB.disabled;
-            nameMeInputB.focus();
-        });
-
         agreeA.addEventListener('change', () => {
             submitAButton.disabled = !agreeA.checked;
         });
@@ -314,6 +309,11 @@
 
             if (!state.storyA || !state.nameMe || !state.nameOpponent) {
                 showMessage("이름과 이야기를 모두 입력해주세요.", true);
+                return;
+            }
+
+            if (state.nameMe === state.nameOpponent) {
+                showMessage("서로 다른 이름을 입력해주세요.", true);
                 return;
             }
 
@@ -334,7 +334,9 @@
                 showMessage("당신의 이야기를 입력해주세요.", true);
                 return;
             }
-            getAiJudgment(state.storyA, state.storyB, state.nameOpponent, state.nameMe); // A is opponent, B is me
+            // getAiJudgment expects (storyA, storyB, nameA, nameB)
+            // Here, state.nameOpponent is A's name, and state.nameMe is B's name.
+            getAiJudgment(state.storyA, state.storyB, state.nameOpponent, state.nameMe); 
         });
         
         startOverButtons.forEach(button => {
@@ -343,11 +345,12 @@
 
         shareResultButton.addEventListener('click', () => {
             const judgmentJson = aiJudgmentContainer.dataset.rawJson;
+            // Bug Fix: When sharing, nM should be A's name (state.nameOpponent) and nO should be B's name (state.nameMe).
             const encoded = {
                 sA: btoa(encodeURIComponent(state.storyA)),
                 sB: btoa(encodeURIComponent(state.storyB)),
-                nM: btoa(encodeURIComponent(state.nameMe)),
-                nO: btoa(encodeURIComponent(state.nameOpponent)),
+                nM: btoa(encodeURIComponent(state.nameOpponent)), // A's name
+                nO: btoa(encodeURIComponent(state.nameMe)),       // B's name
                 sJ: btoa(encodeURIComponent(judgmentJson))
             };
             const link = `${window.location.origin}${window.location.pathname}?sA=${encoded.sA}&sB=${encoded.sB}&nM=${encoded.nM}&nO=${encoded.nO}&sJ=${encoded.sJ}`;
@@ -372,13 +375,23 @@
         // --- Result Page UI Generation ---
         function createResultTitle(data, nameA, nameB) {
             const { responsibilityA, responsibilityB } = data;
-            const winner = responsibilityA > responsibilityB ? nameA : nameB;
-            const loser = responsibilityA > responsibilityB ? nameB : nameA;
-            if (responsibilityA === responsibilityB) {
-                return `<h2 class="text-3xl font-bold text-gray-800">이번 분쟁은 <span class="text-yellow-500">두 분 모두의 잘못</span>이야.</h2>`;
+            let winner, loser, titleHtml;
+            
+            if (responsibilityA > responsibilityB) {
+                winner = nameA;
+                loser = nameB;
+                titleHtml = `<h2 class="text-3xl font-bold text-gray-800">이번 분쟁은 <span class="text-blue-600">${winner}</span>의 잘못이 더 크네.</h2>
+                             <p class="text-gray-600 mt-2">${loser}한테 진심으로 사과해라.</p>`;
+            } else if (responsibilityB > responsibilityA) {
+                winner = nameB;
+                loser = nameA;
+                titleHtml = `<h2 class="text-3xl font-bold text-gray-800">이번 분쟁은 <span class="text-red-600">${winner}</span>의 잘못이 더 크네.</h2>
+                             <p class="text-gray-600 mt-2">${loser}한테 진심으로 사과해라.</p>`;
+            } else {
+                 titleHtml = `<h2 class="text-3xl font-bold text-gray-800">이번 분쟁은 <span class="text-yellow-500">두 분 모두의 잘못</span>이야.</h2>
+                              <p class="text-gray-600 mt-2">둘 다 사이좋게 사과하도록.</p>`;
             }
-            return `<h2 class="text-3xl font-bold text-gray-800">이번 분쟁은 <span class="text-red-500">${winner}의 잘못</span>이네.</h2>
-                    <p class="text-gray-600 mt-2">${loser}한테 진심으로 사과해라.</p>`;
+            return titleHtml;
         }
 
         function createResultHtmlFromJson(data, nameA, nameB) {
@@ -399,8 +412,8 @@
                             <span class="text-red-600">${nameB} 책임</span>
                         </div>
                         <div class="w-full bg-gray-200 rounded-full h-8 flex overflow-hidden border-2 border-white shadow-inner">
-                            <div class="bg-blue-500 h-full flex items-center justify-center text-white font-bold text-sm" style="width: ${responsibilityA}%">${responsibilityA}%</div>
-                            <div class="bg-red-500 h-full flex items-center justify-center text-white font-bold text-sm" style="width: ${responsibilityB}%">${responsibilityB}%</div>
+                            <div class="bg-blue-500 h-full flex items-center justify-center text-white font-bold text-sm" style="width: ${responsibilityA}%">${responsibilityA > 0 ? responsibilityA + '%' : ''}</div>
+                            <div class="bg-red-500 h-full flex items-center justify-center text-white font-bold text-sm" style="width: ${responsibilityB}%">${responsibilityB > 0 ? responsibilityB + '%' : ''}</div>
                         </div>
                     </div>
                     ${analysisCards.map(card => `
@@ -424,17 +437,24 @@
         async function getAiJudgment(storyA, storyB, nameA, nameB) {
             showPage('page-loading');
             
+            // State update for result sharing
             state.storyA = storyA;
             state.storyB = storyB;
-            state.nameMe = nameB;
-            state.nameOpponent = nameA;
+            state.nameOpponent = nameA; // A's name
+            state.nameMe = nameB;       // B's name
 
-            const apiKey = "AIzaSyAbowHACEpR8PyKDxuoDCamj2rWmXUUT2s"; // API Key is handled by the environment.
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
+            const apiKey = "YOUR_GEMINI_API_KEY"; // IMPORTANT: Replace with your actual Gemini API Key
+            if (apiKey === "YOUR_GEMINI_API_KEY") {
+                 showMessage("Gemini API 키를 입력해주세요. (JAVASCRIPT 427번째 줄)", true, 10000);
+                 showPage('page-b-input');
+                 return;
+            }
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
 
             const prompt = `
 너는 싸움 구경을 제일 좋아하는 친구야. 아주 솔직하고 직설적으로, 반말로 두 사람의 분쟁을 분석해줘.
 ${nameA}와 ${nameB} 사이의 문제인데, 누가 더 잘못했는지, 왜 그렇게 생각하는지 가감없이 말해줘.
+책임 비율(responsibilityA, responsibilityB)은 합쳐서 100이 되도록 정해줘.
 답변은 반드시 다음 JSON 형식에 맞춰서, 다른 설명 없이 JSON 객체만 반환해야 해.
 JSON 내부의 모든 텍스트는 반드시 반말로 작성하고, 'A', 'B' 대신에 '${nameA}', '${nameB}'라는 실제 이름을 사용해줘.
 
@@ -445,7 +465,7 @@ JSON 내부의 모든 텍스트는 반드시 반말로 작성하고, 'A', 'B' �
   "general": "보통 사람들, 그러니까 내 주변 친구들 같으면 이 상황을 어떻게 볼 것 같은지 말해줘.",
   "average": "보통 이런 비슷한 싸움에서는 평균적으로 누가 더 잘못하는 경우가 많은지 알려줘.",
   "statistical": "통계까지는 아니더라도, 확률적으로 봤을 때 누가 더 문제의 원인일 가능성이 높은지 말해줘.",
-  "advice": "그래서 결론적으로, 더 잘못한 쪽이 어떻게 행동했어야 하는지 알려줘."
+  "advice": "그래서 결론적으로, 두 사람이 앞으로 어떻게 하면 좋을지 조언해줘."
 }
 
 ---
@@ -460,7 +480,6 @@ ${storyB}
             const payload = {
                 contents: [{ parts: [{ text: prompt }] }],
                 generationConfig: { 
-                    maxOutputTokens: 8192,
                     responseMimeType: "application/json",
                 }
             };
@@ -472,14 +491,14 @@ ${storyB}
                     body: JSON.stringify(payload)
                 });
 
-                const result = await response.json();
-
                 if (!response.ok) {
-                    console.error("API Error Body:", result);
-                    const errorMessage = result?.error?.message || `API 요청 실패: ${response.status}`;
+                    const errorResult = await response.json();
+                    console.error("API Error Body:", errorResult);
+                    const errorMessage = errorResult?.error?.message || `API 요청 실패: ${response.status}`;
                     throw new Error(errorMessage);
                 }
                 
+                const result = await response.json();
                 const candidate = result.candidates?.[0];
                 if (!candidate || !candidate.content?.parts?.[0]?.text) {
                     throw new Error("AI로부터 유효한 응답을 받지 못했습니다.");
@@ -497,7 +516,7 @@ ${storyB}
             } catch (error) {
                 console.error("AI 판단 요청 중 오류 발생:", error);
                 showMessage(`AI 분석 중 오류가 발생했습니다: ${error.message}`, true, 6000);
-                showPage('page-b-input');
+                showPage('page-b-input'); // Go back to the input page on error
             }
         }
     </script>
