@@ -196,12 +196,7 @@
 
     </div>
 
-    <script type="module">
-        // --- Firebase SDK Imports ---
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, addDoc, updateDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+    <script>
         // --- DOM Elements ---
         const pages = document.querySelectorAll('.page');
         const storyAInput = document.getElementById('story-a');
@@ -229,11 +224,8 @@
         const agreeB = document.getElementById('agree-b');
         const resultTitleContainer = document.getElementById('result-title-container');
 
-        // --- Global State & Firebase ---
-        let db;
-        let appId;
+        // --- Global State ---
         let state = {
-            disputeId: null,
             nameMe: "나",
             nameOpponent: "상대",
             storyA: "",
@@ -253,76 +245,48 @@
             setTimeout(() => { box.style.display = 'none'; }, duration);
         }
         
-        // --- Firebase Initialization ---
-        async function initFirebase() {
-            try {
-                if (typeof __firebase_config === 'undefined') {
-                    throw new Error("Firebase config not found.");
-                }
-                const firebaseConfig = JSON.parse(__firebase_config);
-                appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                const auth = getAuth(app);
-                
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                    console.log("Firebase initialized and user signed in with custom token.");
-                } else {
-                    await signInAnonymously(auth);
-                    console.log("Firebase initialized and user signed in anonymously.");
-                }
-            } catch (error) {
-                console.error("Firebase initialization failed:", error);
-                showMessage("서비스 초기화에 실패했습니다. 새로고침 해주세요.", true);
-            }
-        }
-
-
         // --- Core Logic ---
-        async function handlePageLoad() {
-            await initFirebase();
+        window.onload = function() {
             const params = new URLSearchParams(window.location.search);
-            state.disputeId = params.get('id');
+            const p = {
+                sA: params.get('sA'),
+                sB: params.get('sB'),
+                nM: params.get('nM'),
+                nO: params.get('nO'),
+                sJ: params.get('sJ')
+            };
 
-            if (state.disputeId) {
-                if (!db) {
-                    showMessage("데이터베이스 연결에 실패했습니다. 새로고침 해주세요.", true);
-                    return;
-                }
-                const docRef = doc(db, `artifacts/${appId}/public/data/disputes`, state.disputeId);
-                const docSnap = await getDoc(docRef);
-
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    if (data.status === 'complete') {
-                        state.nameMe = data.nameA;
-                        state.nameOpponent = data.nameB;
-                        aiJudgmentContainer.innerHTML = createResultHtmlFromJson(data.judgment, data.nameA, data.nameB);
-                        resultTitleContainer.innerHTML = createResultTitle(data.judgment, data.nameA, data.nameB);
-                        document.getElementById('main-header').style.display = 'none';
-                        document.getElementById('result-buttons').style.display = 'none';
-                        showPage('page-result');
-                    } else {
-                        state.storyA = data.storyA;
-                        state.nameMe = data.nameB;
-                        state.nameOpponent = data.nameA;
-                        
-                        nameMeInputB.value = state.nameMe;
-                        nameOpponentDisplayB.textContent = state.nameOpponent;
-                        storyADisplay.textContent = state.storyA;
-                        showPage('page-b-input');
-                    }
+            try {
+                if (p.sA && p.sB && p.nM && p.nO && p.sJ) {
+                    // Shared result view
+                    state.nameMe = decodeURIComponent(atob(p.nM));
+                    state.nameOpponent = decodeURIComponent(atob(p.nO));
+                    const judgmentData = JSON.parse(decodeURIComponent(atob(p.sJ)));
+                    aiJudgmentContainer.innerHTML = createResultHtmlFromJson(judgmentData, state.nameMe, state.nameOpponent);
+                    resultTitleContainer.innerHTML = createResultTitle(judgmentData, state.nameMe, state.nameOpponent);
+                    document.getElementById('main-header').style.display = 'none';
+                    document.getElementById('result-buttons').style.display = 'none';
+                    showPage('page-result');
+                } else if (p.sA && p.nM && p.nO) {
+                    // B's input view
+                    state.storyA = decodeURIComponent(atob(p.sA));
+                    state.nameMe = decodeURIComponent(atob(p.nO)); // B is now "me"
+                    state.nameOpponent = decodeURIComponent(atob(p.nM)); // A is now "opponent"
+                    
+                    nameMeInputB.value = state.nameMe;
+                    nameOpponentDisplayB.textContent = state.nameOpponent;
+                    storyADisplay.textContent = state.storyA;
+                    showPage('page-b-input');
                 } else {
-                    showMessage("유효하지 않은 링크입니다.", true);
                     showPage('page-a-input');
                 }
-            } else {
+            } catch (e) {
+                console.error("Failed to decode URL params:", e);
+                showMessage("잘못된 링크입니다. 처음부터 다시 시작해주세요.", true);
+                window.history.replaceState({}, '', window.location.pathname);
                 showPage('page-a-input');
             }
-        }
-        
-        window.onload = handlePageLoad;
+        };
 
         // --- Event Listeners ---
         editNameMeA.addEventListener('click', () => {
@@ -343,36 +307,24 @@
             submitBButton.disabled = !agreeB.checked;
         });
 
-        submitAButton.addEventListener('click', async () => {
-            if (!db) {
-                showMessage("데이터베이스에 연결되지 않았습니다. 잠시 후 다시 시도해주세요.", true);
-                return;
-            }
-            const storyA = storyAInput.value.trim();
-            const nameMe = nameMeInputA.value.trim();
-            const nameOpponent = nameOpponentInputA.value.trim();
+        submitAButton.addEventListener('click', () => {
+            state.storyA = storyAInput.value.trim();
+            state.nameMe = nameMeInputA.value.trim();
+            state.nameOpponent = nameOpponentInputA.value.trim();
 
-            if (!storyA || !nameMe || !nameOpponent) {
+            if (!state.storyA || !state.nameMe || !state.nameOpponent) {
                 showMessage("이름과 이야기를 모두 입력해주세요.", true);
                 return;
             }
-            
-            try {
-                const disputesCollectionPath = `artifacts/${appId}/public/data/disputes`;
-                const docRef = await addDoc(collection(db, disputesCollectionPath), {
-                    nameA: nameMe,
-                    nameB: nameOpponent,
-                    storyA: storyA,
-                    status: 'pending',
-                    createdAt: serverTimestamp()
-                });
-                const link = `${window.location.origin}${window.location.pathname}?id=${docRef.id}`;
-                linkForBInput.value = link;
-                showPage('page-a-link');
-            } catch (e) {
-                console.error("Error adding document: ", e);
-                showMessage("링크 생성에 실패했습니다. 다시 시도해주세요.", true);
-            }
+
+            const encoded = {
+                sA: btoa(encodeURIComponent(state.storyA)),
+                nM: btoa(encodeURIComponent(state.nameMe)),
+                nO: btoa(encodeURIComponent(state.nameOpponent))
+            };
+            const link = `${window.location.origin}${window.location.pathname}?sA=${encoded.sA}&nM=${encoded.nM}&nO=${encoded.nO}`;
+            linkForBInput.value = link;
+            showPage('page-a-link');
         });
 
         submitBButton.addEventListener('click', () => {
@@ -390,7 +342,15 @@
         });
 
         shareResultButton.addEventListener('click', () => {
-            const link = `${window.location.origin}${window.location.pathname}?id=${state.disputeId}`;
+            const judgmentJson = aiJudgmentContainer.dataset.rawJson;
+            const encoded = {
+                sA: btoa(encodeURIComponent(state.storyA)),
+                sB: btoa(encodeURIComponent(state.storyB)),
+                nM: btoa(encodeURIComponent(state.nameMe)),
+                nO: btoa(encodeURIComponent(state.nameOpponent)),
+                sJ: btoa(encodeURIComponent(judgmentJson))
+            };
+            const link = `${window.location.origin}${window.location.pathname}?sA=${encoded.sA}&sB=${encoded.sB}&nM=${encoded.nM}&nO=${encoded.nO}&sJ=${encoded.sJ}`;
             shareLinkInput.value = link;
             showPage('page-share-link');
         });
@@ -464,6 +424,11 @@
         async function getAiJudgment(storyA, storyB, nameA, nameB) {
             showPage('page-loading');
             
+            state.storyA = storyA;
+            state.storyB = storyB;
+            state.nameMe = nameB;
+            state.nameOpponent = nameA;
+
             const apiKey = ""; // API Key is handled by the environment.
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
 
@@ -523,14 +488,6 @@ ${storyB}
                 const judgmentJsonText = candidate.content.parts[0].text;
                 const judgmentData = JSON.parse(judgmentJsonText);
                 
-                // Update the document in Firestore with the result
-                const docRef = doc(db, `artifacts/${appId}/public/data/disputes`, state.disputeId);
-                await updateDoc(docRef, {
-                    storyB: storyB,
-                    judgment: judgmentData,
-                    status: 'complete'
-                });
-
                 aiJudgmentContainer.dataset.rawJson = judgmentJsonText;
                 aiJudgmentContainer.innerHTML = createResultHtmlFromJson(judgmentData, nameA, nameB);
                 resultTitleContainer.innerHTML = createResultTitle(judgmentData, nameA, nameB);
