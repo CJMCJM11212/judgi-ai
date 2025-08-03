@@ -5,28 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 분쟁 해결사</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- html2canvas 라이브러리 추가 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Noto Sans KR', sans-serif;
-            background-color: #f8fafc; /* Lighter gray background */
+            background-color: #f8fafc;
         }
-        .page {
-            display: none;
-        }
-        .page.active {
-            display: block;
-        }
+        .page { display: none; }
+        .page.active { display: block; }
         .card {
             background-color: white;
-            border-radius: 1.5rem; /* More rounded corners */
+            border-radius: 1.5rem;
             padding: 2.5rem;
             box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
             transition: all 0.3s ease-in-out;
         }
         .btn {
             display: inline-block;
-            font-weight: 700; /* Bolder font */
+            font-weight: 700;
             text-align: center;
             vertical-align: middle;
             cursor: pointer;
@@ -49,27 +47,19 @@
             transform: none;
             box-shadow: none;
         }
-        .btn-secondary {
-            background-color: #6b7280;
-        }
-        .btn-secondary:hover {
-            background-color: #4b5563;
-        }
-        textarea {
-            resize: vertical;
-        }
-        #loading-spinner div {
-            border-color: #3b82f6 transparent transparent transparent;
-        }
+        .btn-secondary { background-color: #6b7280; }
+        .btn-secondary:hover { background-color: #4b5563; }
+        textarea { resize: vertical; }
+        #loading-spinner div { border-color: #3b82f6 transparent transparent transparent; }
         .name-input {
             border: none;
-            background-color: #e0e7ff; /* Light blue background */
-            color: #3730a3; /* Darker blue text */
+            background-color: #e0e7ff;
+            color: #3730a3;
             font-weight: bold;
             font-size: 1.5rem;
             line-height: 2rem;
-            padding: 0.25rem 0.75rem; /* Vertical and horizontal padding */
-            border-radius: 0.5rem; /* Rounded corners */
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.5rem;
             width: auto;
             max-width: 150px;
             text-align: center;
@@ -77,7 +67,7 @@
         }
         .name-input:focus {
             outline: none;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5); /* Focus ring */
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
         }
         .name-input:disabled {
              background-color: #e5e7eb;
@@ -168,34 +158,21 @@
 
         <!-- Page 5: Result -->
         <div id="page-result" class="page">
-            <div class="card">
+            <!-- 이미지 캡쳐를 위한 id 추가 -->
+            <div id="result-card-content" class="card">
                 <div id="result-title-container" class="text-center mb-8"></div>
                 <div id="ai-judgment"></div>
                 <div id="result-buttons" class="mt-8 w-full space-y-4 md:space-y-0 md:space-x-4 md:flex">
-                    <button id="share-result" class="btn w-full md:w-1/2">결과 공유하기</button>
+                    <!-- 버튼 기능 변경 -->
+                    <button id="save-result-as-image" class="btn w-full md:w-1/2">결과 이미지로 저장</button>
                     <button id="start-over-2" class="btn btn-secondary w-full md:w-1/2">새로운 분쟁 해결하기</button>
                 </div>
             </div>
         </div>
-        
-        <!-- Page 6: Share Link -->
-        <div id="page-share-link" class="page">
-            <div class="card text-center">
-                <h2 class="text-2xl font-bold text-gray-700 mb-4">결과 공유 링크</h2>
-                <p class="text-gray-600 mb-6">아래 링크를 복사하여 다른 사람에게 공유하면, 현재 AI 분석 결과를 바로 확인할 수 있습니다.</p>
-                <input id="share-link-input" type="text" class="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 text-center" readonly>
-                <div class="mt-6 space-x-4">
-                    <button id="copy-share-link" class="btn">링크 복사</button>
-                    <button id="back-to-result" class="btn btn-secondary">결과로 돌아가기</button>
-                </div>
-            </div>
-        </div>
-
 
         <!-- Message Box -->
         <div id="message-box" class="fixed top-5 right-5 bg-green-500 text-white py-2 px-4 rounded-lg shadow-lg" style="display: none;"></div>
         <div id="error-box" class="fixed top-5 right-5 bg-red-500 text-white py-2 px-4 rounded-lg shadow-lg" style="display: none;"></div>
-
     </div>
 
     <script>
@@ -212,10 +189,7 @@
         const messageBox = document.getElementById('message-box');
         const errorBox = document.getElementById('error-box');
         const startOverButtons = [document.getElementById('start-over-1'), document.getElementById('start-over-2')];
-        const shareResultButton = document.getElementById('share-result');
-        const shareLinkInput = document.getElementById('share-link-input');
-        const copyShareLinkButton = document.getElementById('copy-share-link');
-        const backToResultButton = document.getElementById('back-to-result');
+        const saveResultAsImageButton = document.getElementById('save-result-as-image');
         const nameMeInputA = document.getElementById('name-me-input-a');
         const nameOpponentInputA = document.getElementById('name-opponent-input-a');
         const nameMeInputB = document.getElementById('name-me-input-b');
@@ -223,15 +197,11 @@
         const agreeA = document.getElementById('agree-a');
         const agreeB = document.getElementById('agree-b');
         const resultTitleContainer = document.getElementById('result-title-container');
+        const resultCardContent = document.getElementById('result-card-content');
 
         // --- Global State ---
-        let state = {
-            nameMe: "나",
-            nameOpponent: "상대",
-            storyA: "",
-            storyB: "",
-        };
-        
+        let state = {};
+
         // --- Utility Functions ---
         function showPage(pageId) {
             pages.forEach(page => page.classList.remove('active'));
@@ -248,36 +218,18 @@
         // --- Core Logic ---
         window.onload = function() {
             const params = new URLSearchParams(window.location.search);
-            const p = {
-                sA: params.get('sA'),
-                sB: params.get('sB'),
-                nM: params.get('nM'),
-                nO: params.get('nO'),
-                sJ: params.get('sJ')
-            };
+            const data = params.get('data');
 
             try {
-                if (p.sA && p.sB && p.nM && p.nO && p.sJ) {
-                    state.nameOpponent = decodeURIComponent(atob(p.nO)); // B's Name
-                    state.nameMe = decodeURIComponent(atob(p.nM)); // A's Name
-                    const judgmentData = JSON.parse(decodeURIComponent(atob(p.sJ)));
-                    aiJudgmentContainer.innerHTML = createResultHtmlFromJson(judgmentData, state.nameMe, state.nameOpponent);
-                    resultTitleContainer.innerHTML = createResultTitle(judgmentData, state.nameMe, state.nameOpponent);
-                    document.getElementById('main-header').style.display = 'none';
-                    document.getElementById('result-buttons').innerHTML = `<button id="start-over-shared" class="btn btn-secondary w-full">새로운 분쟁 해결하기</button>`;
-                    document.getElementById('start-over-shared').addEventListener('click', () => { window.location.href = window.location.pathname; });
-                    showPage('page-result');
-
-                } else if (p.sA && p.nM && p.nO) {
-                    state.storyA = decodeURIComponent(atob(p.sA));
-                    state.nameMe = decodeURIComponent(atob(p.nO)); // B is now "me"
-                    state.nameOpponent = decodeURIComponent(atob(p.nM)); // A is now "opponent"
-                    
-                    nameMeInputB.value = state.nameMe;
-                    nameOpponentDisplayB.textContent = state.nameOpponent;
+                if (data) { // B's input view
+                    const decodedState = JSON.parse(decodeURIComponent(atob(data)));
+                    state = decodedState;
+                    nameMeInputB.value = state.nameOpponent; // B is now "me"
+                    nameOpponentDisplayB.textContent = state.nameMe;
                     storyADisplay.textContent = state.storyA;
                     showPage('page-b-input');
-                } else {
+                } else { // A's initial input view
+                    state = { nameMe: "나", nameOpponent: "상대", storyA: "", storyB: "" };
                     showPage('page-a-input');
                 }
             } catch (e) {
@@ -289,65 +241,63 @@
         };
 
         // --- Event Listeners ---
-        agreeA.addEventListener('change', () => {
-            submitAButton.disabled = !agreeA.checked;
-        });
-
-        agreeB.addEventListener('change', () => {
-            submitBButton.disabled = !agreeB.checked;
-        });
+        agreeA.addEventListener('change', () => { submitAButton.disabled = !agreeA.checked; });
+        agreeB.addEventListener('change', () => { submitBButton.disabled = !agreeB.checked; });
 
         submitAButton.addEventListener('click', () => {
-            state.storyA = storyAInput.value.trim();
-            state.nameMe = nameMeInputA.value.trim();
-            state.nameOpponent = nameOpponentInputA.value.trim();
+            const nameMe = nameMeInputA.value.trim();
+            const nameOpponent = nameOpponentInputA.value.trim();
+            const storyA = storyAInput.value.trim();
 
-            if (!state.storyA || !state.nameMe || !state.nameOpponent) {
-                showMessage("이름과 이야기를 모두 입력해주세요.", true);
-                return;
+            if (!storyA || !nameMe || !nameOpponent) {
+                showMessage("이름과 이야기를 모두 입력해주세요.", true); return;
+            }
+            if (nameMe === nameOpponent) {
+                showMessage("서로 다른 이름을 입력해주세요.", true); return;
             }
 
-            if (state.nameMe === state.nameOpponent) {
-                showMessage("서로 다른 이름을 입력해주세요.", true);
-                return;
-            }
-
-            const encoded = {
-                sA: btoa(encodeURIComponent(state.storyA)),
-                nM: btoa(encodeURIComponent(state.nameMe)),
-                nO: btoa(encodeURIComponent(state.nameOpponent))
-            };
-            const link = `${window.location.origin}${window.location.pathname}?sA=${encoded.sA}&nM=${encoded.nM}&nO=${encoded.nO}`;
+            state = { nameMe, nameOpponent, storyA };
+            const encoded = btoa(encodeURIComponent(JSON.stringify(state)));
+            const link = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
             linkForBInput.value = link;
             showPage('page-a-link');
         });
 
         submitBButton.addEventListener('click', () => {
-            state.storyB = storyBInput.value.trim();
-            state.nameMe = nameMeInputB.value.trim(); 
-            if (!state.storyB) {
-                showMessage("당신의 이야기를 입력해주세요.", true);
-                return;
+            const storyB = storyBInput.value.trim();
+            if (!storyB) {
+                showMessage("당신의 이야기를 입력해주세요.", true); return;
             }
-            getAiJudgment(state.storyA, state.storyB, state.nameOpponent, state.nameMe); 
+            // A's name is state.nameMe, B's name is state.nameOpponent from the link
+            getAiJudgment(state.storyA, storyB, state.nameMe, state.nameOpponent); 
         });
         
         startOverButtons.forEach(button => {
             button.addEventListener('click', () => { window.location.href = window.location.pathname; });
         });
 
-        shareResultButton.addEventListener('click', () => {
-            const judgmentJson = aiJudgmentContainer.dataset.rawJson;
-            const encoded = {
-                sA: btoa(encodeURIComponent(state.storyA)),
-                sB: btoa(encodeURIComponent(state.storyB)),
-                nM: btoa(encodeURIComponent(state.nameOpponent)),
-                nO: btoa(encodeURIComponent(state.nameMe)),
-                sJ: btoa(encodeURIComponent(judgmentJson))
-            };
-            const link = `${window.location.origin}${window.location.pathname}?sA=${encoded.sA}&sB=${encoded.sB}&nM=${encoded.nM}&nO=${encoded.nO}&sJ=${encoded.sJ}`;
-            shareLinkInput.value = link;
-            showPage('page-share-link');
+        // --- NEW: Save Result as Image ---
+        saveResultAsImageButton.addEventListener('click', () => {
+            showMessage("이미지 생성 중입니다. 잠시만 기다려주세요...");
+            const buttons = resultCardContent.querySelector('#result-buttons');
+            buttons.style.display = 'none'; // Hide buttons in the screenshot
+
+            html2canvas(resultCardContent, {
+                scale: 2, // Higher resolution
+                useCORS: true, // For external images/fonts if any
+                backgroundColor: '#ffffff',
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'AI_분쟁_해결_결과.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                buttons.style.display = 'flex'; // Show buttons again
+                showMessage("이미지가 저장되었습니다!");
+            }).catch(err => {
+                console.error("Image generation failed:", err);
+                showMessage("이미지 저장에 실패했습니다.", true);
+                buttons.style.display = 'flex';
+            });
         });
         
         copyLinkButton.addEventListener('click', () => {
@@ -356,39 +306,25 @@
             catch (err) { showMessage("복사에 실패했습니다. 직접 복사해주세요.", true); }
         });
 
-        copyShareLinkButton.addEventListener('click', () => {
-            shareLinkInput.select();
-            try { document.execCommand('copy'); showMessage("공유 링크가 복사되었습니다!"); }
-            catch (err) { showMessage("복사에 실패했습니다. 직접 복사해주세요.", true); }
-        });
-
-        backToResultButton.addEventListener('click', () => { showPage('page-result'); });
-
         // --- Result Page UI Generation ---
         function createResultTitle(data, nameA, nameB) {
             const { responsibilityA, responsibilityB } = data;
             let winner, loser, titleHtml;
             
             if (responsibilityA > responsibilityB) {
-                winner = nameA;
-                loser = nameB;
-                titleHtml = `<h2 class="text-3xl font-bold text-gray-800">AI 분석 결과, 본 분쟁의 주된 책임은 <span class="text-blue-600">${winner}</span>님에게 있습니다.</h2>
-                             <p class="text-gray-600 mt-2"><span class="font-bold">${loser}</span>님에게 정중히 사과하고, 갈등 해결을 위해 노력하는 것을 권고합니다.</p>`;
+                winner = nameA; loser = nameB;
+                titleHtml = `<h2 class="text-3xl font-bold text-gray-800">AI 분석 결과, 본 분쟁의 주된 책임은 <span class="text-blue-600">${winner}</span>님에게 있습니다.</h2><p class="text-gray-600 mt-2"><span class="font-bold">${loser}</span>님에게 정중히 사과하고, 갈등 해결을 위해 노력하는 것을 권고합니다.</p>`;
             } else if (responsibilityB > responsibilityA) {
-                winner = nameB;
-                loser = nameA;
-                titleHtml = `<h2 class="text-3xl font-bold text-gray-800">AI 분석 결과, 본 분쟁의 주된 책임은 <span class="text-red-600">${winner}</span>님에게 있습니다.</h2>
-                             <p class="text-gray-600 mt-2"><span class="font-bold">${loser}</span>님에게 정중히 사과하고, 갈등 해결을 위해 노력하는 것을 권고합니다.</p>`;
+                winner = nameB; loser = nameA;
+                titleHtml = `<h2 class="text-3xl font-bold text-gray-800">AI 분석 결과, 본 분쟁의 주된 책임은 <span class="text-red-600">${winner}</span>님에게 있습니다.</h2><p class="text-gray-600 mt-2"><span class="font-bold">${loser}</span>님에게 정중히 사과하고, 갈등 해결을 위해 노력하는 것을 권고합니다.</p>`;
             } else {
-                 titleHtml = `<h2 class="text-3xl font-bold text-gray-800">본 분쟁은 <span class="text-yellow-500">양측 모두에게 책임</span>이 있는 것으로 판단됩니다.</h2>
-                              <p class="text-gray-600 mt-2">서로의 입장을 이해하고 원만하게 대화로 해결하시기를 바랍니다.</p>`;
+                 titleHtml = `<h2 class="text-3xl font-bold text-gray-800">본 분쟁은 <span class="text-yellow-500">양측 모두에게 책임</span>이 있는 것으로 판단됩니다.</h2><p class="text-gray-600 mt-2">서로의 입장을 이해하고 원만하게 대화로 해결하시기를 바랍니다.</p>`;
             }
             return titleHtml;
         }
 
         function createResultHtmlFromJson(data, nameA, nameB) {
             const { responsibilityA, responsibilityB, case_summary, main_issue, analysis_A, analysis_B, conclusion } = data;
-            
             const analysisCards = [
                 { title: '사건 개요', content: case_summary, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>` },
                 { title: '핵심 쟁점', content: main_issue, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H5v-2H3v-2H1v-4a6 6 0 017.743-5.743L13 5h2v2h2v2z" /></svg>` },
@@ -397,26 +333,7 @@
                 { title: '최종 결론', content: conclusion, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>` }
             ];
 
-            return `
-                <div class="space-y-6 bg-slate-100 p-6 rounded-2xl border border-slate-200">
-                    <div>
-                        <div class="flex items-center justify-between mb-2 text-base font-bold">
-                            <span class="text-blue-600">${nameA} 책임</span>
-                            <span class="text-red-600">${nameB} 책임</span>
-                        </div>
-                        <div class="w-full bg-gray-200 rounded-full h-8 flex overflow-hidden border-2 border-white shadow-inner">
-                            <div class="bg-blue-500 h-full flex items-center justify-center text-white font-bold text-sm" style="width: ${responsibilityA}%">${responsibilityA > 0 ? responsibilityA + '%' : ''}</div>
-                            <div class="bg-red-500 h-full flex items-center justify-center text-white font-bold text-sm" style="width: ${responsibilityB}%">${responsibilityB > 0 ? responsibilityB + '%' : ''}</div>
-                        </div>
-                    </div>
-                    ${analysisCards.map(card => `
-                    <div class="p-5 bg-white rounded-xl border shadow-sm">
-                        <h4 class="text-lg font-bold text-gray-800 mb-3 flex items-center">${card.icon}${card.title}</h4>
-                        <div class="text-gray-600 leading-relaxed space-y-2 text-sm">${card.content.replace(/\n/g, '<br>')}</div>
-                    </div>
-                    `).join('')}
-                </div>
-            `;
+            return `<div class="space-y-6 bg-slate-100 p-6 rounded-2xl border border-slate-200"><div><div class="flex items-center justify-between mb-2 text-base font-bold"><span class="text-blue-600">${nameA} 책임</span><span class="text-red-600">${nameB} 책임</span></div><div class="w-full bg-gray-200 rounded-full h-8 flex overflow-hidden border-2 border-white shadow-inner"><div class="bg-blue-500 h-full flex items-center justify-center text-white font-bold text-sm" style="width: ${responsibilityA}%">${responsibilityA > 0 ? responsibilityA + '%' : ''}</div><div class="bg-red-500 h-full flex items-center justify-center text-white font-bold text-sm" style="width: ${responsibilityB}%">${responsibilityB > 0 ? responsibilityB + '%' : ''}</div></div></div>${analysisCards.map(card => `<div class="p-5 bg-white rounded-xl border shadow-sm"><h4 class="text-lg font-bold text-gray-800 mb-3 flex items-center">${card.icon}${card.title}</h4><div class="text-gray-600 leading-relaxed space-y-2 text-sm">${card.content.replace(/\n/g, '<br>')}</div></div>`).join('')}</div>`;
         }
 
         // --- AI API Call ---
@@ -428,14 +345,13 @@
             state.nameOpponent = nameA; 
             state.nameMe = nameB;
 
-            // API Key and URL updated to Gemini 2.5 Pro
             const apiKey = "AIzaSyAbowHACEpR8PyKDxuoDCamj2rWmXUUT2s";
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
 
-            // Prompt updated for enhanced objectivity and neutrality
+            // Prompt updated for stricter neutrality
             const prompt = `
-너는 고도로 훈련된 'AI 분쟁 조정관'이다. 당신의 임무는 ${nameA}와 ${nameB} 사이의 갈등을 법률적, 논리적 관점에서 극도로 객관적이고 중립적으로 분석하는 것이다.
-추측, 감정적 표현, 개인적 의견을 완전히 배제하고 오직 제시된 사실에만 입각하여 판단해야 한다.
+너는 극도로 정교하고 중립적인 'AI 분쟁 조정관'이다. 당신의 유일한 임무는 ${nameA}와 ${nameB} 사이의 갈등을 사실관계에만 입각하여 법률적, 논리적으로 분석하는 것이다.
+성별, 나이, 감정적 호소, 사회적 통념 등 일체의 편견을 유발할 수 있는 요소를 완전히 배제해야 한다. 오직 '누가 원인을 제공했는가', '누구의 행동이 갈등을 심화시켰는가'라는 인과관계에만 집중하여 판단해야 한다.
 책임 비율(responsibilityA, responsibilityB)은 반드시 합쳐서 100이 되도록 정밀하게 산정해야 한다.
 답변은 반드시 다음 JSON 형식에 맞춰서, 다른 설명 없이 JSON 객체만 반환해야 한다.
 모든 텍스트는 공식적이고 전문적인 존댓말로 작성하며, ${nameA}와 ${nameB}라는 이름을 사용해야 한다.
