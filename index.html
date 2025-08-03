@@ -236,14 +236,15 @@
         });
 
 
-        // --- AI Judgment Function ---
+        // --- AI Judgment Function (Error handling improved) ---
         async function getAiJudgment(storyA, storyB) {
-            showPage('page-loading');
-            
-            const apiKey = "AIzaSyAWSc6p29J5o0Cp9hGDWuwIxOkE2HKJstw"; // API 키를 적용했습니다.
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+            try {
+                showPage('page-loading');
+                
+                const apiKey = "AIzaSyAWSc6p29J5o0Cp9hGDWuwIxOkE2HKJstw"; // API 키를 적용했습니다.
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
-            const prompt = `
+                const prompt = `
 당신은 매우 공정하고 객관적인 AI 심판입니다. 당신의 임무는 두 사람 사이의 다음 분쟁을 분석하는 것입니다. 당신의 판단은 편파적이지 않고, 일반적인 사회 통념, 상식, 그리고 법적, 도덕적 원칙에 근거해야 합니다.
 
 오직 제공된 정보에만 입각하여, 이 상황에 대해 누가 더 큰 책임이 있는지 비율(예: 첫 번째 사람: 60%, 두 번째 사람: 40%)로 명확히 제시하고 그 이유를 논리적으로 설명해 주십시오. 언급되지 않은 모든 사항은 그것을 생략한 사람의 책임으로 간주합니다.
@@ -273,19 +274,18 @@ ${storyA}
 ${storyB}
 `;
 
-            const payload = {
-                contents: [{
-                    parts: [{ text: prompt }]
-                }],
-                generationConfig: {
-                    temperature: 0.5,
-                    topK: 1,
-                    topP: 1,
-                    maxOutputTokens: 2048,
-                }
-            };
-            
-            try {
+                const payload = {
+                    contents: [{
+                        parts: [{ text: prompt }]
+                    }],
+                    generationConfig: {
+                        temperature: 0.5,
+                        topK: 1,
+                        topP: 1,
+                        maxOutputTokens: 2048,
+                    }
+                };
+                
                 const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -295,17 +295,31 @@ ${storyB}
                 if (!response.ok) {
                     const errorBody = await response.json();
                     console.error("API Error Body:", errorBody);
-                    throw new Error(`API 요청 실패: ${response.status} ${response.statusText}`);
+                    throw new Error(`API 서버에서 오류가 발생했습니다 (코드: ${response.status}).`);
                 }
 
                 const result = await response.json();
-                const judgmentText = result.candidates[0].content.parts[0].text;
                 
-                // Display results
+                const candidate = result.candidates && result.candidates[0];
+                if (!candidate || !candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
+                    console.error("Invalid API response structure or content blocked:", result);
+                    const blockReason = result.promptFeedback?.blockReason;
+                    if (blockReason) {
+                        throw new Error(`AI가 안전상의 이유로 답변을 거부했습니다. (이유: ${blockReason})`);
+                    } else {
+                        throw new Error("AI로부터 유효한 답변을 받지 못했습니다.");
+                    }
+                }
+                
+                const judgmentText = candidate.content.parts[0].text;
+
+                if (!judgmentText) {
+                    throw new Error("AI가 내용을 생성하지 못했습니다. 다른 내용으로 다시 시도해주세요.");
+                }
+                
                 resultStoryA.textContent = storyA;
                 resultStoryB.textContent = storyB;
                 
-                // Simple markdown to HTML conversion
                 let htmlResult = judgmentText
                     .replace(/### (.*)/g, '<h3 class="text-xl font-bold text-blue-800 mb-4">$1</h3>')
                     .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-800">$1</strong>')
@@ -313,16 +327,24 @@ ${storyB}
                     .replace(/\* (.*)/g, '<li class="ml-5 list-disc">$1</li>')
                     .replace(/(\r\n|\n|\r)/gm, "<br>");
 
-
                 aiJudgmentContainer.innerHTML = htmlResult;
-
                 showPage('page-result');
 
             } catch (error) {
                 console.error("AI 판단 요청 중 오류 발생:", error);
-                showMessage("AI 분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
-                // Go back to B's input page on error
-                showPage('page-b-input');
+                
+                resultStoryA.textContent = storyA;
+                resultStoryB.textContent = storyB;
+
+                aiJudgmentContainer.innerHTML = `
+                    <div class="p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg">
+                        <h3 class="text-xl font-bold text-red-700 mb-2">오류가 발생했습니다</h3>
+                        <p class="text-red-600">AI 분석 중 문제가 발생하여 결과를 표시할 수 없습니다.</p>
+                        <p class="text-gray-500 mt-4 text-sm"><strong>오류 정보:</strong> ${error.message}</p>
+                    </div>
+                `;
+                
+                showPage('page-result');
             }
         }
     </script>
