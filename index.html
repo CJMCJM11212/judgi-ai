@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 분쟁 해결사</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- html2canvas 라이브러리 추가 -->
+    <!-- html2canvas library for saving results as an image -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
@@ -49,6 +49,8 @@
         }
         .btn-secondary { background-color: #6b7280; }
         .btn-secondary:hover { background-color: #4b5563; }
+        .btn-tertiary { background-color: #10b981; }
+        .btn-tertiary:hover { background-color: #059669; }
         textarea { resize: vertical; }
         #loading-spinner div { border-color: #3b82f6 transparent transparent transparent; }
         .name-input {
@@ -89,9 +91,9 @@
             <div class="card space-y-6">
                 <div class="p-4 bg-slate-50 rounded-lg">
                      <div class="flex items-center space-x-2">
-                        <input id="name-me-input-a" class="name-input" value="나">
-                        <span class="text-2xl font-bold text-gray-600">의 의견</span>
-                    </div>
+                         <input id="name-me-input-a" class="name-input" value="나">
+                         <span class="text-2xl font-bold text-gray-600">의 의견</span>
+                     </div>
                 </div>
                 <div class="p-4 bg-slate-50 rounded-lg">
                     <label for="name-opponent-input-a" class="text-gray-600 mb-2 block font-semibold">상대방의 이름을 정해주세요.</label>
@@ -118,6 +120,7 @@
                     <button id="copy-link" class="btn">링크 복사</button>
                     <button id="start-over-1" class="btn btn-secondary">처음부터 다시하기</button>
                 </div>
+                 <p class="text-xs text-gray-400 mt-6">이 링크는 24시간 동안 유효합니다.</p>
             </div>
         </div>
 
@@ -125,10 +128,10 @@
         <div id="page-b-input" class="page">
             <div class="card space-y-6">
                  <div class="p-4 bg-slate-50 rounded-lg">
-                     <div class="flex items-center space-x-2">
-                         <input id="name-me-input-b" class="name-input" value="나">
-                         <span class="text-2xl font-bold text-gray-600">의 의견</span>
-                     </div>
+                       <div class="flex items-center space-x-2">
+                           <input id="name-me-input-b" class="name-input" value="나">
+                           <span class="text-2xl font-bold text-gray-600">의 의견</span>
+                       </div>
                  </div>
                 <div class="p-4 bg-slate-50 rounded-lg">
                     <h3 class="font-bold text-lg text-gray-700 mb-2"><span id="name-opponent-display-b">상대</span>의 의견</h3>
@@ -158,14 +161,13 @@
 
         <!-- Page 5: Result -->
         <div id="page-result" class="page">
-            <!-- 이미지 캡쳐를 위한 id 추가 -->
             <div id="result-card-content" class="card">
                 <div id="result-title-container" class="text-center mb-8"></div>
                 <div id="ai-judgment"></div>
-                <div id="result-buttons" class="mt-8 w-full space-y-4 md:space-y-0 md:space-x-4 md:flex">
-                    <!-- 버튼 기능 변경 -->
-                    <button id="save-result-as-image" class="btn w-full md:w-1/2">결과 이미지로 저장</button>
-                    <button id="start-over-2" class="btn btn-secondary w-full md:w-1/2">새로운 분쟁 해결하기</button>
+                <div id="result-buttons" class="mt-8 w-full space-y-4 md:space-y-0 md:flex md:flex-wrap md:gap-4">
+                    <button id="save-result-as-image" class="btn w-full md:flex-1">결과 이미지로 저장</button>
+                    <button id="share-result-link" class="btn btn-tertiary w-full md:flex-1">결과 링크 공유</button>
+                    <button id="start-over-2" class="btn btn-secondary w-full mt-4 md:mt-0 md:w-full">새로운 분쟁 해결하기</button>
                 </div>
             </div>
         </div>
@@ -175,7 +177,12 @@
         <div id="error-box" class="fixed top-5 right-5 bg-red-500 text-white py-2 px-4 rounded-lg shadow-lg" style="display: none;"></div>
     </div>
 
-    <script>
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, doc, addDoc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
         // --- DOM Elements ---
         const pages = document.querySelectorAll('.page');
         const storyAInput = document.getElementById('story-a');
@@ -190,6 +197,7 @@
         const errorBox = document.getElementById('error-box');
         const startOverButtons = [document.getElementById('start-over-1'), document.getElementById('start-over-2')];
         const saveResultAsImageButton = document.getElementById('save-result-as-image');
+        const shareResultLinkButton = document.getElementById('share-result-link');
         const nameMeInputA = document.getElementById('name-me-input-a');
         const nameOpponentInputA = document.getElementById('name-opponent-input-a');
         const nameMeInputB = document.getElementById('name-me-input-b');
@@ -199,8 +207,20 @@
         const resultTitleContainer = document.getElementById('result-title-container');
         const resultCardContent = document.getElementById('result-card-content');
 
+        // --- Firebase Config ---
+        // IMPORTANT: Replace with your actual Firebase config
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        
         // --- Global State ---
-        let state = {};
+        let disputeId = null;
+        let db;
 
         // --- Utility Functions ---
         function showPage(pageId) {
@@ -215,42 +235,85 @@
             setTimeout(() => { box.style.display = 'none'; }, duration);
         }
         
-        // --- Core Logic ---
-        window.onload = function() {
-            const params = new URLSearchParams(window.location.search);
-            const data = params.get('data');
-
+        function copyToClipboard(text, successMessage) {
+            const tempInput = document.createElement('input');
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
             try {
-                if (data) {
-                    const linkData = JSON.parse(decodeURIComponent(atob(data)));
-                    state = {
-                        nameA: linkData.nameA,
-                        nameB: linkData.nameB,
-                        storyA: linkData.storyA,
-                        storyB: ''
-                    };
-                    
-                    nameMeInputB.value = state.nameB;
-                    nameOpponentDisplayB.textContent = state.nameA;
-                    storyADisplay.textContent = state.storyA;
-                    showPage('page-b-input');
-                } else {
-                    state = {};
-                    showPage('page-a-input');
-                }
-            } catch (e) {
-                console.error("Failed to decode URL params:", e);
-                showMessage("잘못된 링크입니다. 처음부터 다시 시작해주세요.", true);
-                window.history.replaceState({}, '', window.location.pathname);
+                document.execCommand('copy');
+                showMessage(successMessage);
+            } catch (err) {
+                showMessage("복사에 실패했습니다. 직접 복사해주세요.", true);
+            }
+            document.body.removeChild(tempInput);
+        }
+
+        // --- Core Logic ---
+        async function initialize() {
+            try {
+                // Initialize Firebase
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+            } catch (error) {
+                console.error("Firebase 초기화 실패:", error);
+                showMessage("서비스를 시작할 수 없습니다. 나중에 다시 시도해주세요.", true);
+                return;
+            }
+
+            const params = new URLSearchParams(window.location.search);
+            disputeId = params.get('disputeId');
+
+            if (disputeId) {
+                await loadDispute(disputeId);
+            } else {
                 showPage('page-a-input');
             }
-        };
+        }
+
+        async function loadDispute(id) {
+            showPage('page-loading');
+            try {
+                const docRef = doc(db, "disputes", id);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    
+                    if (data.status === 'resolved') {
+                        // Display result directly
+                        aiJudgmentContainer.innerHTML = createResultHtmlFromJson(data.judgment, data.nameA, data.nameB);
+                        resultTitleContainer.innerHTML = createResultTitle(data.judgment, data.nameA, data.nameB);
+                        showPage('page-result');
+                    } else if (data.status === 'pending_b') {
+                        // Show B's input page
+                        nameMeInputB.value = data.nameB;
+                        nameOpponentDisplayB.textContent = data.nameA;
+                        storyADisplay.textContent = data.storyA;
+                        showPage('page-b-input');
+                    } else {
+                         showMessage("이미 분석이 진행중이거나 완료된 분쟁입니다.", false);
+                         showPage('page-result'); // Or a waiting page
+                    }
+                } else {
+                    showMessage("해당 분쟁을 찾을 수 없습니다. 링크가 올바른지 확인해주세요.", true);
+                    window.history.replaceState({}, '', window.location.pathname);
+                    showPage('page-a-input');
+                }
+            } catch (error) {
+                console.error("분쟁 로딩 실패:", error);
+                showMessage("분쟁 정보를 불러오는 데 실패했습니다.", true);
+                showPage('page-a-input');
+            }
+        }
+
+        window.onload = initialize;
 
         // --- Event Listeners ---
         agreeA.addEventListener('change', () => { submitAButton.disabled = !agreeA.checked; });
         agreeB.addEventListener('change', () => { submitBButton.disabled = !agreeB.checked; });
 
-        submitAButton.addEventListener('click', () => {
+        submitAButton.addEventListener('click', async () => {
             const nameA = nameMeInputA.value.trim();
             const nameB = nameOpponentInputA.value.trim();
             const storyA = storyAInput.value.trim();
@@ -262,15 +325,33 @@
                 showMessage("서로 다른 이름을 입력해주세요.", true); return;
             }
 
-            const linkData = { nameA, nameB, storyA };
-            const encoded = btoa(encodeURIComponent(JSON.stringify(linkData)));
-            const link = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
-            
-            linkForBInput.value = link;
-            showPage('page-a-link');
+            submitAButton.disabled = true;
+            submitAButton.textContent = "생성 중...";
+
+            try {
+                const docRef = await addDoc(collection(db, "disputes"), {
+                    nameA,
+                    nameB,
+                    storyA,
+                    status: 'pending_b',
+                    createdAt: serverTimestamp()
+                });
+                
+                disputeId = docRef.id;
+                const link = `${window.location.origin}${window.location.pathname}?disputeId=${disputeId}`;
+                linkForBInput.value = link;
+                showPage('page-a-link');
+
+            } catch (error) {
+                console.error("분쟁 생성 실패:", error);
+                showMessage("링크 생성에 실패했습니다. 다시 시도해주세요.", true);
+            } finally {
+                submitAButton.disabled = false;
+                submitAButton.textContent = "상대방에게 보낼 링크 생성하기";
+            }
         });
 
-        submitBButton.addEventListener('click', () => {
+        submitBButton.addEventListener('click', async () => {
             const storyB = storyBInput.value.trim();
             const updatedNameB = nameMeInputB.value.trim();
             
@@ -278,10 +359,25 @@
                 showMessage("당신의 이야기를 입력해주세요.", true); return;
             }
             
-            state.nameB = updatedNameB;
-            state.storyB = storyB;
+            try {
+                const docRef = doc(db, "disputes", disputeId);
+                const docSnap = await getDoc(docRef);
+                if (!docSnap.exists()) throw new Error("Dispute not found");
 
-            getAiJudgment(state.storyA, state.storyB, state.nameA, state.nameB); 
+                const originalData = docSnap.data();
+
+                await updateDoc(docRef, {
+                    nameB: updatedNameB,
+                    storyB: storyB,
+                    status: 'pending_analysis'
+                });
+
+                getAiJudgment(originalData.storyA, storyB, originalData.nameA, updatedNameB);
+
+            } catch (error) {
+                console.error("분쟁 제출 실패:", error);
+                showMessage("정보 제출에 실패했습니다. 다시 시도해주세요.", true);
+            }
         });
 
         startOverButtons.forEach(button => {
@@ -310,11 +406,14 @@
                 buttons.style.display = 'flex';
             });
         });
+        
+        shareResultLinkButton.addEventListener('click', () => {
+            const link = `${window.location.origin}${window.location.pathname}?disputeId=${disputeId}`;
+            copyToClipboard(link, "결과 링크가 복사되었습니다!");
+        });
 
         copyLinkButton.addEventListener('click', () => {
-            linkForBInput.select();
-            try { document.execCommand('copy'); showMessage("링크가 복사되었습니다!"); }
-            catch (err) { showMessage("복사에 실패했습니다. 직접 복사해주세요.", true); }
+            copyToClipboard(linkForBInput.value, "링크가 복사되었습니다!");
         });
 
         // --- Result Page UI Generation ---
@@ -344,7 +443,6 @@
                 { title: '최종 결론', content: conclusion, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>` }
             ];
 
-            // FIX: Added inline style 'line-height: 2rem' to vertically center the text in the responsibility bar.
             return `<div class="space-y-6 bg-slate-100 p-6 rounded-2xl border border-slate-200"><div><div class="flex items-center justify-between mb-2 text-base font-bold"><span class="text-blue-600">${nameA} 책임</span><span class="text-red-600">${nameB} 책임</span></div><div class="w-full bg-gray-200 rounded-full h-8 flex overflow-hidden border-2 border-white shadow-inner"><div class="bg-blue-500 h-full flex items-center justify-center text-white font-bold text-sm" style="width: ${responsibilityA}%; line-height: 2rem;">${responsibilityA > 0 ? responsibilityA + '%' : ''}</div><div class="bg-red-500 h-full flex items-center justify-center text-white font-bold text-sm" style="width: ${responsibilityB}%; line-height: 2rem;">${responsibilityB > 0 ? responsibilityB + '%' : ''}</div></div></div>${analysisCards.map(card => `<div class="p-5 bg-white rounded-xl border shadow-sm"><h4 class="text-lg font-bold text-gray-800 mb-3 flex items-center">${card.icon}${card.title}</h4><div class="text-gray-600 leading-relaxed space-y-2 text-sm">${card.content.replace(/\n/g, '<br>')}</div></div>`).join('')}</div>`;
         }
 
@@ -352,8 +450,9 @@
         async function getAiJudgment(storyA, storyB, nameA, nameB) {
             showPage('page-loading');
             
-            const apiKey = "AIzaSyAbowHACEpR8PyKDxuoDCamj2rWmXUUT2s";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
+            // IMPORTANT: Replace with your actual Gemini API Key
+            const apiKey = "YOUR_GEMINI_API_KEY";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
 
             const prompt = `
 너는 극도로 정교하고 중립적인 'AI 분쟁 조정관'이다. 당신의 유일한 임무는 ${nameA}와 ${nameB} 사이의 갈등을 사실관계에만 입각하여 법률적, 논리적으로 분석하는 것이다.
@@ -411,7 +510,13 @@ ${storyB}
                 const judgmentJsonText = candidate.content.parts[0].text;
                 const judgmentData = JSON.parse(judgmentJsonText);
                 
-                aiJudgmentContainer.dataset.rawJson = judgmentJsonText;
+                // Save result to Firestore
+                const docRef = doc(db, "disputes", disputeId);
+                await updateDoc(docRef, {
+                    judgment: judgmentData,
+                    status: 'resolved'
+                });
+
                 aiJudgmentContainer.innerHTML = createResultHtmlFromJson(judgmentData, nameA, nameB);
                 resultTitleContainer.innerHTML = createResultTitle(judgmentData, nameA, nameB);
 
@@ -420,6 +525,7 @@ ${storyB}
             } catch (error) {
                 console.error("AI 판단 요청 중 오류 발생:", error);
                 showMessage(`AI 분석 중 오류가 발생했습니다: ${error.message}`, true, 6000);
+                // Go back to B's input page on failure
                 showPage('page-b-input'); 
             }
         }
