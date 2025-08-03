@@ -200,6 +200,8 @@
         const resultCardContent = document.getElementById('result-card-content');
 
         // --- Global State ---
+        // The state object will consistently hold the data for the entire dispute.
+        // nameA is always the first user, nameB is the second.
         let state = {};
 
         // --- Utility Functions ---
@@ -221,15 +223,23 @@
             const data = params.get('data');
 
             try {
-                if (data) { // B's input view
-                    const decodedState = JSON.parse(decodeURIComponent(atob(data)));
-                    state = decodedState;
-                    nameMeInputB.value = state.nameOpponent; // B is now "me"
-                    nameOpponentDisplayB.textContent = state.nameMe;
+                if (data) { // This is User B, loading the page from a link.
+                    const linkData = JSON.parse(decodeURIComponent(atob(data)));
+                    // Store the received data in the global state.
+                    state = {
+                        nameA: linkData.nameA,
+                        nameB: linkData.nameB,
+                        storyA: linkData.storyA,
+                        storyB: ''
+                    };
+                    
+                    // Set up UI for User B.
+                    nameMeInputB.value = state.nameB; // B's own name
+                    nameOpponentDisplayB.textContent = state.nameA; // A's name
                     storyADisplay.textContent = state.storyA;
                     showPage('page-b-input');
-                } else { // A's initial input view
-                    state = { nameMe: "나", nameOpponent: "상대", storyA: "", storyB: "" };
+                } else { // This is User A, starting a new dispute.
+                    state = {}; // Reset state
                     showPage('page-a-input');
                 }
             } catch (e) {
@@ -245,38 +255,46 @@
         agreeB.addEventListener('change', () => { submitBButton.disabled = !agreeB.checked; });
 
         submitAButton.addEventListener('click', () => {
-            const nameMe = nameMeInputA.value.trim();
-            const nameOpponent = nameOpponentInputA.value.trim();
+            const nameA = nameMeInputA.value.trim();
+            const nameB = nameOpponentInputA.value.trim();
             const storyA = storyAInput.value.trim();
 
-            if (!storyA || !nameMe || !nameOpponent) {
+            if (!storyA || !nameA || !nameB) {
                 showMessage("이름과 이야기를 모두 입력해주세요.", true); return;
             }
-            if (nameMe === nameOpponent) {
+            if (nameA === nameB) {
                 showMessage("서로 다른 이름을 입력해주세요.", true); return;
             }
 
-            state = { nameMe, nameOpponent, storyA };
-            const encoded = btoa(encodeURIComponent(JSON.stringify(state)));
+            // Create a clean data object for the link.
+            const linkData = { nameA, nameB, storyA };
+            const encoded = btoa(encodeURIComponent(JSON.stringify(linkData)));
             const link = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
+            
             linkForBInput.value = link;
             showPage('page-a-link');
         });
 
         submitBButton.addEventListener('click', () => {
             const storyB = storyBInput.value.trim();
+            const updatedNameB = nameMeInputB.value.trim(); // User B might have edited their name.
+            
             if (!storyB) {
                 showMessage("당신의 이야기를 입력해주세요.", true); return;
             }
-            // A's name is state.nameMe, B's name is state.nameOpponent from the link
-            getAiJudgment(state.storyA, storyB, state.nameMe, state.nameOpponent); 
+            
+            // Update state with B's final name and story before calling the AI.
+            state.nameB = updatedNameB;
+            state.storyB = storyB;
+
+            // Call judgment with the consistent state data.
+            getAiJudgment(state.storyA, state.storyB, state.nameA, state.nameB); 
         });
-        
+
         startOverButtons.forEach(button => {
             button.addEventListener('click', () => { window.location.href = window.location.pathname; });
         });
 
-        // --- NEW: Save Result as Image ---
         saveResultAsImageButton.addEventListener('click', () => {
             showMessage("이미지 생성 중입니다. 잠시만 기다려주세요...");
             const buttons = resultCardContent.querySelector('#result-buttons');
@@ -284,7 +302,7 @@
 
             html2canvas(resultCardContent, {
                 scale: 2, // Higher resolution
-                useCORS: true, // For external images/fonts if any
+                useCORS: true,
                 backgroundColor: '#ffffff',
             }).then(canvas => {
                 const link = document.createElement('a');
@@ -299,7 +317,7 @@
                 buttons.style.display = 'flex';
             });
         });
-        
+
         copyLinkButton.addEventListener('click', () => {
             linkForBInput.select();
             try { document.execCommand('copy'); showMessage("링크가 복사되었습니다!"); }
@@ -340,15 +358,9 @@
         async function getAiJudgment(storyA, storyB, nameA, nameB) {
             showPage('page-loading');
             
-            state.storyA = storyA;
-            state.storyB = storyB;
-            state.nameOpponent = nameA; 
-            state.nameMe = nameB;
-
             const apiKey = "AIzaSyAbowHACEpR8PyKDxuoDCamj2rWmXUUT2s";
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
 
-            // Prompt updated for stricter neutrality
             const prompt = `
 너는 극도로 정교하고 중립적인 'AI 분쟁 조정관'이다. 당신의 유일한 임무는 ${nameA}와 ${nameB} 사이의 갈등을 사실관계에만 입각하여 법률적, 논리적으로 분석하는 것이다.
 성별, 나이, 감정적 호소, 사회적 통념 등 일체의 편견을 유발할 수 있는 요소를 완전히 배제해야 한다. 오직 '누가 원인을 제공했는가', '누구의 행동이 갈등을 심화시켰는가'라는 인과관계에만 집중하여 판단해야 한다.
