@@ -9,6 +9,7 @@
     <style>
         body {
             font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f8fafc; /* Lighter gray background */
         }
         .page {
             display: none;
@@ -18,30 +19,35 @@
         }
         .card {
             background-color: white;
-            border-radius: 1rem;
-            padding: 2rem;
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            border-radius: 1.5rem; /* More rounded corners */
+            padding: 2.5rem;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
             transition: all 0.3s ease-in-out;
         }
         .btn {
             display: inline-block;
-            font-weight: 500;
+            font-weight: 700; /* Bolder font */
             text-align: center;
             vertical-align: middle;
             cursor: pointer;
             user-select: none;
             background-color: #3b82f6;
             color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            transition: background-color 0.2s;
+            padding: 0.875rem 1.75rem;
+            border-radius: 0.75rem;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
         }
         .btn:hover {
             background-color: #2563eb;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
         }
         .btn:disabled {
             background-color: #9ca3af;
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
         .btn-secondary {
             background-color: #6b7280;
@@ -61,8 +67,9 @@
             font-weight: bold;
             font-size: 1.5rem;
             line-height: 2rem;
-            color: #374151;
-            width: 120px;
+            color: #1f2937;
+            width: auto;
+            max-width: 150px;
         }
         .name-input:focus {
             outline: none;
@@ -70,13 +77,13 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+<body class="flex items-center justify-center min-h-screen p-4">
 
     <div class="w-full max-w-2xl mx-auto">
         <!-- Header -->
         <header id="main-header" class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-800">AI 분쟁 해결사</h1>
-            <p class="text-gray-600 mt-2">AI가 당신의 갈등 상황을 객관적으로 분석해 드립니다.</p>
+            <h1 class="text-5xl font-bold text-gray-800">AI 분쟁 해결사</h1>
+            <p class="text-gray-500 mt-3 text-lg">AI가 당신의 갈등 상황을 객관적으로 분석해 드립니다.</p>
         </header>
 
         <!-- Page 1: A's Input -->
@@ -85,17 +92,17 @@
                 <div class="flex items-center justify-between mb-4">
                      <div class="flex items-center">
                         <input id="name-me-input-a" class="name-input" value="나" disabled>
-                        <span class="text-2xl font-bold text-gray-700">'s 이야기</span>
+                        <span class="text-2xl font-bold text-gray-600">의 의견</span>
                         <button id="edit-name-me-a" class="ml-2 p-1 text-gray-400 hover:text-blue-500">
                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"></path></svg>
                         </button>
                     </div>
                 </div>
-                <p class="text-gray-600 mb-2">상대방의 이름을 정해주세요.</p>
-                 <div class="flex items-center mb-6">
-                    <input id="name-opponent-input-a" class="name-input text-lg" value="상대">
-                 </div>
-                <textarea id="story-a" class="w-full p-3 border border-gray-300 rounded-lg h-48 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="여기에 상황을 입력하세요..."></textarea>
+                <div class="p-4 bg-slate-50 rounded-lg mb-6">
+                    <label for="name-opponent-input-a" class="text-gray-600 mb-2 block font-semibold">상대방의 이름을 정해주세요.</label>
+                    <input id="name-opponent-input-a" class="name-input text-lg w-full" value="상대">
+                </div>
+                <textarea id="story-a" class="w-full p-4 border border-gray-300 rounded-lg h-48 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50" placeholder="여기에 상황을 입력하세요..."></textarea>
                 <div class="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <label class="flex items-center">
                         <input type="checkbox" id="agree-a" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
@@ -125,17 +132,17 @@
                  <div class="flex items-center justify-between mb-4">
                      <div class="flex items-center">
                         <input id="name-me-input-b" class="name-input" value="나" disabled>
-                        <span class="text-2xl font-bold text-gray-700">'s 이야기</span>
+                        <span class="text-2xl font-bold text-gray-600">의 의견</span>
                         <button id="edit-name-me-b" class="ml-2 p-1 text-gray-400 hover:text-blue-500">
                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"></path></svg>
                         </button>
                     </div>
                 </div>
-                <div class="mb-6">
-                    <h3 class="font-bold text-lg text-gray-700 mb-2"><span id="name-opponent-display-b">상대</span>'s 이야기</h3>
-                    <div id="story-a-display" class="w-full p-3 border border-gray-200 bg-gray-50 rounded-lg h-32 overflow-y-auto"></div>
+                <div class="mb-6 p-4 bg-slate-50 rounded-lg">
+                    <h3 class="font-bold text-lg text-gray-700 mb-2"><span id="name-opponent-display-b">상대</span>의 의견</h3>
+                    <div id="story-a-display" class="w-full p-3 border border-gray-200 bg-white rounded-lg h-32 overflow-y-auto text-sm"></div>
                 </div>
-                <textarea id="story-b" class="w-full p-3 border border-gray-300 rounded-lg h-48 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="여기에 당신의 입장을 입력하세요..."></textarea>
+                <textarea id="story-b" class="w-full p-4 border border-gray-300 rounded-lg h-48 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50" placeholder="여기에 당신의 입장을 입력하세요..."></textarea>
                  <div class="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <label class="flex items-center">
                         <input type="checkbox" id="agree-b" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
@@ -242,16 +249,17 @@
             const params = new URLSearchParams(window.location.search);
             const p = {
                 storyA: params.get('sA'),
+                storyB: params.get('sB'),
                 nameMe: params.get('nM'),
                 nameOpponent: params.get('nO'),
                 sharedJson: params.get('sJ')
             };
 
-            if (p.storyA && p.nameMe && p.nameOpponent && p.sharedJson) {
+            if (p.storyA && p.storyB && p.nameMe && p.nameOpponent && p.sharedJson) {
                 // Shared result view
                 try {
-                    state.nameMe = decodeURIComponent(atob(p.nameOpponent)); // For shared view, "me" is the opponent
-                    state.nameOpponent = decodeURIComponent(atob(p.nameMe));
+                    state.nameMe = decodeURIComponent(atob(p.nameMe));
+                    state.nameOpponent = decodeURIComponent(atob(p.nameOpponent));
                     const judgmentData = JSON.parse(decodeURIComponent(atob(p.sharedJson)));
                     aiJudgmentContainer.innerHTML = createResultHtmlFromJson(judgmentData, state.nameMe, state.nameOpponent);
                     resultTitleContainer.innerHTML = createResultTitle(judgmentData, state.nameMe, state.nameOpponent);
@@ -387,36 +395,36 @@
             const { responsibilityA, responsibilityB, objective, general, average, statistical, advice } = data;
             
             const analysisCards = [
-                { title: '객관적 근거', content: objective, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>` },
-                { title: '일반적 근거', content: general, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>` },
-                { title: '평균적 근거', content: average, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" /></svg>` },
-                { title: '통계적 근거', content: statistical, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>` }
+                { title: '객관적 근거', content: objective, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>` },
+                { title: '일반적 근거', content: general, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>` },
+                { title: '평균적 근거', content: average, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" /></svg>` },
+                { title: '통계적 근거', content: statistical, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>` }
             ];
 
             return `
-                <div class="space-y-6">
+                <div class="space-y-6 bg-slate-50 p-6 rounded-2xl">
                     <div>
-                        <div class="flex items-center justify-between mb-2 text-base font-semibold">
+                        <div class="flex items-center justify-between mb-2 text-base font-bold">
                             <span class="text-blue-600">${nameA} 책임</span>
                             <span class="text-red-600">${nameB} 책임</span>
                         </div>
-                        <div class="w-full bg-gray-200 rounded-full h-6 flex overflow-hidden border">
+                        <div class="w-full bg-gray-200 rounded-full h-8 flex overflow-hidden border-2 border-white shadow-inner">
                             <div class="bg-blue-500 h-full flex items-center justify-center text-white font-bold text-sm" style="width: ${responsibilityA}%">${responsibilityA}%</div>
                             <div class="bg-red-500 h-full flex items-center justify-center text-white font-bold text-sm" style="width: ${responsibilityB}%">${responsibilityB}%</div>
                         </div>
                     </div>
                     ${analysisCards.map(card => `
-                    <div class="p-5 bg-gray-50 rounded-xl border">
+                    <div class="p-5 bg-white rounded-xl border shadow-sm">
                         <h4 class="text-lg font-bold text-gray-800 mb-3 flex items-center">${card.icon}${card.title}</h4>
-                        <div class="text-gray-700 leading-relaxed space-y-2 text-sm">${card.content.replace(/\n/g, '<br>')}</div>
+                        <div class="text-gray-600 leading-relaxed space-y-2 text-sm">${card.content.replace(/\n/g, '<br>')}</div>
                     </div>
                     `).join('')}
-                    <div class="p-5 bg-green-50 rounded-xl border border-green-200">
+                    <div class="p-5 bg-green-100 rounded-xl border border-green-200 shadow-sm">
                         <h4 class="text-lg font-bold text-green-800 mb-3 flex items-center">
-                           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            조언
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            AI의 조언
                         </h4>
-                        <div class="text-green-900 leading-relaxed space-y-2 text-sm">${advice.replace(/\n/g, '<br>')}</div>
+                        <div class="text-green-800 leading-relaxed space-y-2 text-sm">${advice.replace(/\n/g, '<br>')}</div>
                     </div>
                 </div>
             `;
@@ -431,7 +439,7 @@
             state.nameMe = nameB; // The current user is B
             state.nameOpponent = nameA;
 
-            const apiKey = ""; // API 키는 자동으로 처리됩니다.
+            const apiKey = "AIzaSyAsGXTqp5L0pTc-FFWV63yJ-ofKV8Xm_Gw"; // User-provided API key
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
 
             const prompt = `
@@ -450,10 +458,10 @@
 
 ---
 ### 분쟁 내용
-**A (${nameA})의 이야기:**
+**A (${nameA})의 의견:**
 ${storyA}
 
-**B (${nameB})의 이야기:**
+**B (${nameB})의 의견:**
 ${storyB}
 `;
 
