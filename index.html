@@ -61,7 +61,6 @@
         #loading-spinner div {
             border-color: #3b82f6 transparent transparent transparent;
         }
-        /* --- UI 개선 사항 적용 --- */
         .name-input {
             border: none;
             background-color: #e0e7ff; /* Light blue background */
@@ -100,9 +99,6 @@
                      <div class="flex items-center space-x-2">
                         <input id="name-me-input-a" class="name-input" value="나">
                         <span class="text-2xl font-bold text-gray-600">의 의견</span>
-                        <button id="edit-name-me-a" class="ml-2 p-1 text-gray-400 hover:text-blue-500 hidden">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"></path></svg>
-                        </button>
                     </div>
                 </div>
                 <div class="p-4 bg-slate-50 rounded-lg">
@@ -138,9 +134,6 @@
                      <div class="flex items-center space-x-2">
                          <input id="name-me-input-b" class="name-input" value="나">
                          <span class="text-2xl font-bold text-gray-600">의 의견</span>
-                         <button id="edit-name-me-b" class="ml-2 p-1 text-gray-400 hover:text-blue-500 hidden">
-                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"></path></svg>
-                         </button>
                      </div>
                  </div>
                 <div class="p-4 bg-slate-50 rounded-lg">
@@ -216,10 +209,8 @@
         const copyShareLinkButton = document.getElementById('copy-share-link');
         const backToResultButton = document.getElementById('back-to-result');
         const nameMeInputA = document.getElementById('name-me-input-a');
-        const editNameMeA = document.getElementById('edit-name-me-a');
         const nameOpponentInputA = document.getElementById('name-opponent-input-a');
         const nameMeInputB = document.getElementById('name-me-input-b');
-        const editNameMeB = document.getElementById('edit-name-me-b');
         const nameOpponentDisplayB = document.getElementById('name-opponent-display-b');
         const agreeA = document.getElementById('agree-a');
         const agreeB = document.getElementById('agree-b');
@@ -259,21 +250,17 @@
 
             try {
                 if (p.sA && p.sB && p.nM && p.nO && p.sJ) {
-                    // Shared result view
-                    // For shared results, nameMe (nM) is always A, nameOpponent (nO) is always B.
                     state.nameOpponent = decodeURIComponent(atob(p.nO)); // B's Name
                     state.nameMe = decodeURIComponent(atob(p.nM)); // A's Name
                     const judgmentData = JSON.parse(decodeURIComponent(atob(p.sJ)));
                     aiJudgmentContainer.innerHTML = createResultHtmlFromJson(judgmentData, state.nameMe, state.nameOpponent);
                     resultTitleContainer.innerHTML = createResultTitle(judgmentData, state.nameMe, state.nameOpponent);
                     document.getElementById('main-header').style.display = 'none';
-                    // Hide result buttons but show the "start over" button inside the card for shared view
                     document.getElementById('result-buttons').innerHTML = `<button id="start-over-shared" class="btn btn-secondary w-full">새로운 분쟁 해결하기</button>`;
                     document.getElementById('start-over-shared').addEventListener('click', () => { window.location.href = window.location.pathname; });
                     showPage('page-result');
 
                 } else if (p.sA && p.nM && p.nO) {
-                    // B's input view
                     state.storyA = decodeURIComponent(atob(p.sA));
                     state.nameMe = decodeURIComponent(atob(p.nO)); // B is now "me"
                     state.nameOpponent = decodeURIComponent(atob(p.nM)); // A is now "opponent"
@@ -329,13 +316,11 @@
 
         submitBButton.addEventListener('click', () => {
             state.storyB = storyBInput.value.trim();
-            state.nameMe = nameMeInputB.value.trim(); // Update B's name if edited
+            state.nameMe = nameMeInputB.value.trim(); 
             if (!state.storyB) {
                 showMessage("당신의 이야기를 입력해주세요.", true);
                 return;
             }
-            // getAiJudgment expects (storyA, storyB, nameA, nameB)
-            // Here, state.nameOpponent is A's name, and state.nameMe is B's name.
             getAiJudgment(state.storyA, state.storyB, state.nameOpponent, state.nameMe); 
         });
         
@@ -345,12 +330,11 @@
 
         shareResultButton.addEventListener('click', () => {
             const judgmentJson = aiJudgmentContainer.dataset.rawJson;
-            // Bug Fix: When sharing, nM should be A's name (state.nameOpponent) and nO should be B's name (state.nameMe).
             const encoded = {
                 sA: btoa(encodeURIComponent(state.storyA)),
                 sB: btoa(encodeURIComponent(state.storyB)),
-                nM: btoa(encodeURIComponent(state.nameOpponent)), // A's name
-                nO: btoa(encodeURIComponent(state.nameMe)),       // B's name
+                nM: btoa(encodeURIComponent(state.nameOpponent)),
+                nO: btoa(encodeURIComponent(state.nameMe)),
                 sJ: btoa(encodeURIComponent(judgmentJson))
             };
             const link = `${window.location.origin}${window.location.pathname}?sA=${encoded.sA}&sB=${encoded.sB}&nM=${encoded.nM}&nO=${encoded.nO}&sJ=${encoded.sJ}`;
@@ -380,28 +364,29 @@
             if (responsibilityA > responsibilityB) {
                 winner = nameA;
                 loser = nameB;
-                titleHtml = `<h2 class="text-3xl font-bold text-gray-800">이번 분쟁은 <span class="text-blue-600">${winner}</span>의 잘못이 더 크네.</h2>
-                             <p class="text-gray-600 mt-2">${loser}한테 진심으로 사과해라.</p>`;
+                titleHtml = `<h2 class="text-3xl font-bold text-gray-800">AI 분석 결과, 본 분쟁의 주된 책임은 <span class="text-blue-600">${winner}</span>님에게 있습니다.</h2>
+                             <p class="text-gray-600 mt-2"><span class="font-bold">${loser}</span>님에게 정중히 사과하고, 갈등 해결을 위해 노력하는 것을 권고합니다.</p>`;
             } else if (responsibilityB > responsibilityA) {
                 winner = nameB;
                 loser = nameA;
-                titleHtml = `<h2 class="text-3xl font-bold text-gray-800">이번 분쟁은 <span class="text-red-600">${winner}</span>의 잘못이 더 크네.</h2>
-                             <p class="text-gray-600 mt-2">${loser}한테 진심으로 사과해라.</p>`;
+                titleHtml = `<h2 class="text-3xl font-bold text-gray-800">AI 분석 결과, 본 분쟁의 주된 책임은 <span class="text-red-600">${winner}</span>님에게 있습니다.</h2>
+                             <p class="text-gray-600 mt-2"><span class="font-bold">${loser}</span>님에게 정중히 사과하고, 갈등 해결을 위해 노력하는 것을 권고합니다.</p>`;
             } else {
-                 titleHtml = `<h2 class="text-3xl font-bold text-gray-800">이번 분쟁은 <span class="text-yellow-500">두 분 모두의 잘못</span>이야.</h2>
-                              <p class="text-gray-600 mt-2">둘 다 사이좋게 사과하도록.</p>`;
+                 titleHtml = `<h2 class="text-3xl font-bold text-gray-800">본 분쟁은 <span class="text-yellow-500">양측 모두에게 책임</span>이 있는 것으로 판단됩니다.</h2>
+                              <p class="text-gray-600 mt-2">서로의 입장을 이해하고 원만하게 대화로 해결하시기를 바랍니다.</p>`;
             }
             return titleHtml;
         }
 
         function createResultHtmlFromJson(data, nameA, nameB) {
-            const { responsibilityA, responsibilityB, objective, general, average, statistical, advice } = data;
+            const { responsibilityA, responsibilityB, case_summary, main_issue, analysis_A, analysis_B, conclusion } = data;
             
             const analysisCards = [
-                { title: '객관적 근거', content: objective, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>` },
-                { title: '일반적 근거', content: general, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>` },
-                { title: '평균적 근거', content: average, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" /></svg>` },
-                { title: '통계적 근거', content: statistical, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>` }
+                { title: '사건 개요', content: case_summary, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>` },
+                { title: '핵심 쟁점', content: main_issue, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H5v-2H3v-2H1v-4a6 6 0 017.743-5.743L13 5h2v2h2v2z" /></svg>` },
+                { title: `${nameA}측 분석`, content: analysis_A, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>` },
+                { title: `${nameB}측 분석`, content: analysis_B, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>` },
+                { title: '최종 결론', content: conclusion, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>` }
             ];
 
             return `
@@ -422,13 +407,6 @@
                         <div class="text-gray-600 leading-relaxed space-y-2 text-sm">${card.content.replace(/\n/g, '<br>')}</div>
                     </div>
                     `).join('')}
-                    <div class="p-5 bg-green-100 rounded-xl border border-green-200 shadow-sm">
-                        <h4 class="text-lg font-bold text-green-800 mb-3 flex items-center">
-                           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            AI의 조언
-                        </h4>
-                        <div class="text-green-800 leading-relaxed space-y-2 text-sm">${advice.replace(/\n/g, '<br>')}</div>
-                    </div>
                 </div>
             `;
         }
@@ -437,35 +415,28 @@
         async function getAiJudgment(storyA, storyB, nameA, nameB) {
             showPage('page-loading');
             
-            // State update for result sharing
             state.storyA = storyA;
             state.storyB = storyB;
-            state.nameOpponent = nameA; // A's name
-            state.nameMe = nameB;       // B's name
+            state.nameOpponent = nameA; 
+            state.nameMe = nameB;
 
-            const apiKey = "AIzaSyAbowHACEpR8PyKDxuoDCamj2rWmXUUT2s"; // IMPORTANT: Replace with your actual Gemini API Key
-            if (apiKey === "YOUR_GEMINI_API_KEY") {
-                 showMessage("Gemini API 키를 입력해주세요. (JAVASCRIPT 427번째 줄)", true, 10000);
-                 showPage('page-b-input');
-                 return;
-            }
+            const apiKey = "AIzaSyAbowHACEpR8PyKDxuoDCamj2rWmXUUT2s";
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
 
             const prompt = `
-너는 싸움 구경을 제일 좋아하는 친구야. 아주 솔직하고 직설적으로, 반말로 두 사람의 분쟁을 분석해줘.
-${nameA}와 ${nameB} 사이의 문제인데, 누가 더 잘못했는지, 왜 그렇게 생각하는지 가감없이 말해줘.
-책임 비율(responsibilityA, responsibilityB)은 합쳐서 100이 되도록 정해줘.
-답변은 반드시 다음 JSON 형식에 맞춰서, 다른 설명 없이 JSON 객체만 반환해야 해.
-JSON 내부의 모든 텍스트는 반드시 반말로 작성하고, 'A', 'B' 대신에 '${nameA}', '${nameB}'라는 실제 이름을 사용해줘.
+너는 매우 논리적이고 객관적인 'AI 분쟁 해결사'다. 감정적인 표현은 최대한 배제하고, 오직 사실과 논리에 기반하여 ${nameA}와 ${nameB}의 갈등을 분석하고 판결을 내려야 한다.
+책임 비율(responsibilityA, responsibilityB)은 반드시 합쳐서 100이 되도록 정해야 한다.
+답변은 반드시 다음 JSON 형식에 맞춰서, 다른 설명 없이 JSON 객체만 반환해야 한다.
+모든 텍스트는 존댓말로 작성하며, ${nameA}와 ${nameB}라는 이름을 사용해야 한다.
 
 {
   "responsibilityA": 0,
   "responsibilityB": 0,
-  "objective": "객관적인 사실만 놓고 봤을 때 상황이 어떤지 분석해줘.",
-  "general": "보통 사람들, 그러니까 내 주변 친구들 같으면 이 상황을 어떻게 볼 것 같은지 말해줘.",
-  "average": "보통 이런 비슷한 싸움에서는 평균적으로 누가 더 잘못하는 경우가 많은지 알려줘.",
-  "statistical": "통계까지는 아니더라도, 확률적으로 봤을 때 누가 더 문제의 원인일 가능성이 높은지 말해줘.",
-  "advice": "그래서 결론적으로, 두 사람이 앞으로 어떻게 하면 좋을지 조언해줘."
+  "case_summary": "양측의 주장을 바탕으로 감정을 제외하고 사건의 사실 관계를 객관적으로 요약합니다.",
+  "main_issue": "이 분쟁의 핵심 쟁점이 무엇인지 명확히 짚어냅니다.",
+  "analysis_A": "${nameA}의 행동과 주장에서 잘한 점과 잘못한 점을 논리적으로 분석합니다.",
+  "analysis_B": "${nameB}의 행동과 주장에서 잘한 점과 잘못한 점을 논리적으로 분석합니다.",
+  "conclusion": "위 분석을 종합하여, 각자의 책임 소재와 갈등 해결을 위한 최종 결론을 제시합니다."
 }
 
 ---
@@ -516,11 +487,9 @@ ${storyB}
             } catch (error) {
                 console.error("AI 판단 요청 중 오류 발생:", error);
                 showMessage(`AI 분석 중 오류가 발생했습니다: ${error.message}`, true, 6000);
-                showPage('page-b-input'); // Go back to the input page on error
+                showPage('page-b-input'); 
             }
         }
     </script>
 </body>
 </html>
-
-
