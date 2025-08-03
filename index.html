@@ -240,7 +240,7 @@
         async function getAiJudgment(storyA, storyB) {
             showPage('page-loading');
             
-            const apiKey = ""; // API 키가 필요 없는 모델을 사용합니다.
+            const apiKey = "AIzaSyAWSc6p29J5o0Cp9hGDWuwIxOkE2HKJstw"; // API 키를 적용했습니다.
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
             const prompt = `
@@ -293,6 +293,8 @@ ${storyB}
                 });
 
                 if (!response.ok) {
+                    const errorBody = await response.json();
+                    console.error("API Error Body:", errorBody);
                     throw new Error(`API 요청 실패: ${response.status} ${response.statusText}`);
                 }
 
