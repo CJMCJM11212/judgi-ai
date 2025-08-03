@@ -206,15 +206,14 @@
             const storyAFromUrl = params.get('a');
             const sharedStoryA = params.get('sA');
             const sharedStoryB = params.get('sB');
-            const sharedJudgment = params.get('j');
+            const sharedJudgmentJSON = params.get('sJ'); // Changed to 'sJ' for shared JSON
 
-            if (sharedStoryA && sharedStoryB && sharedJudgment) {
+            if (sharedStoryA && sharedStoryB && sharedJudgmentJSON) {
                 try {
                     resultStoryA.textContent = decodeURIComponent(atob(sharedStoryA));
                     resultStoryB.textContent = decodeURIComponent(atob(sharedStoryB));
-                    // The shared judgment is now the raw text, needs to be parsed
-                    const judgmentText = decodeURIComponent(atob(sharedJudgment));
-                    aiJudgmentContainer.innerHTML = parseAndStyleJudgment(judgmentText);
+                    const judgmentData = JSON.parse(decodeURIComponent(atob(sharedJudgmentJSON)));
+                    aiJudgmentContainer.innerHTML = createResultHtmlFromJson(judgmentData);
                     
                     document.getElementById('main-header').style.display = 'none';
                     document.getElementById('result-buttons').style.display = 'none';
@@ -284,16 +283,15 @@
         });
 
         shareResultButton.addEventListener('click', () => {
-            // We need to store the raw judgment text to share it, not the generated HTML
             const storyA = resultStoryA.textContent;
             const storyB = resultStoryB.textContent;
-            const judgmentText = aiJudgmentContainer.dataset.rawText;
+            const judgmentJson = aiJudgmentContainer.dataset.rawJson; // Get raw JSON
 
             const encodedSA = btoa(encodeURIComponent(storyA));
             const encodedSB = btoa(encodeURIComponent(storyB));
-            const encodedJ = btoa(encodeURIComponent(judgmentText));
+            const encodedJ = btoa(encodeURIComponent(judgmentJson));
 
-            const link = `${window.location.origin}${window.location.pathname}?sA=${encodedSA}&sB=${encodedSB}&j=${encodedJ}`;
+            const link = `${window.location.origin}${window.location.pathname}?sA=${encodedSA}&sB=${encodedSB}&sJ=${encodedJ}`;
             
             shareLinkInput.value = link;
             showPage('page-share-link');
@@ -313,32 +311,19 @@
             showPage('page-result');
         });
 
-        function formatSectionText(sectionText) {
-            if (!sectionText) return '';
-            let html = sectionText.trim().split('\n').map(line => {
-                line = line.trim();
-                if (line.startsWith('* ')) {
-                    return `<li class="ml-5 list-disc">${line.substring(2).replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>')}</li>`;
-                }
-                if (line.length > 0) {
-                    return `<p class="mb-2 last:mb-0">${line.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>')}</p>`;
-                }
-                return '';
-            }).join('');
-
-            return html.includes('<li') ? `<ul>${html}</ul>` : html;
+        function formatSectionText(text) {
+            if (!text) return '';
+            // Simply replace newline characters with <br> for paragraph breaks
+            return text.trim().replace(/\n/g, '<br>');
         }
 
-        function parseAndStyleJudgment(text) {
-            const regexA = /\* \*\*A의 책임\*\*:\s*(\d+)/;
-            const regexB = /\* \*\*B의 책임\*\*:\s*(\d+)/;
-            const matchA = text.match(regexA);
-            const matchB = text.match(regexB);
-            const percentA = matchA ? matchA[1] : '50';
-            const percentB = matchB ? matchB[1] : '50';
-
-            const analysisText = text.split('**판단 근거**:')[1]?.split('**2. 일반적인 관점 및 현명한 대처 방안**')[0] || '';
-            const adviceText = text.split('**2. 일반적인 관점 및 현명한 대처 방안**')[1] || '';
+        function createResultHtmlFromJson(data) {
+            const { responsibilityA, responsibilityB, analysis, advice } = data;
+            const percentA = responsibilityA || 50;
+            const percentB = responsibilityB || 50;
+            
+            const analysisHtml = formatSectionText(analysis);
+            const adviceHtml = formatSectionText(advice);
 
             return `
                 <div class="space-y-8">
@@ -361,7 +346,7 @@
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                             판단 근거
                         </h4>
-                        <div class="text-gray-700 leading-relaxed space-y-2 text-sm">${formatSectionText(analysisText)}</div>
+                        <div class="text-gray-700 leading-relaxed space-y-2 text-sm">${analysisHtml}</div>
                     </div>
 
                     <!-- Advice Section -->
@@ -370,11 +355,12 @@
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
                             현명한 대처 방안
                         </h4>
-                        <div class="text-yellow-900 leading-relaxed space-y-2 text-sm">${formatSectionText(adviceText)}</div>
+                        <div class="text-yellow-900 leading-relaxed space-y-2 text-sm">${adviceHtml}</div>
                     </div>
                 </div>
             `;
         }
+
 
         async function getAiJudgment(storyA, storyB) {
             showPage('page-loading');
@@ -382,11 +368,35 @@
             const apiKey = "AIzaSyAsGXTqp5L0pTc-FFWV63yJ-ofKV8Xm_Gw"; 
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
 
-            const prompt = `...`; // Prompt remains the same
+            const prompt = `
+당신은 매우 공정하고 객관적인 AI 심판입니다. 당신의 임무는 A와 B 사이의 다음 분쟁을 분석하는 것입니다. 당신의 판단은 편파적이지 않고, 일반적인 사회 통념, 상식, 그리고 법적, 도덕적 원칙에 근거해야 합니다.
+
+오직 제공된 정보에만 입각하여 판단하고, 답변은 반드시 다음 JSON 형식에 맞춰 한국어로 작성해주세요. 다른 설명 없이 JSON 객체만 반환해야 합니다.
+
+{
+  "responsibilityA": 50,
+  "responsibilityB": 50,
+  "analysis": "여기에 A와 B의 책임 비율을 산정한 구체적이고 논리적인 이유를 설명합니다. 각 주장의 타당성을 분석하고, 행동의 결과를 평가합니다. 문장은 \\n으로 줄바꿈 할 수 있습니다.",
+  "advice": "이러한 갈등 상황에서 일반적인 사람들이 어떻게 생각하고 행동하는지, 그리고 이 상황을 더 긍정적으로 해결하기 위한 건설적인 조언을 제공합니다. 문장은 \\n으로 줄바꿈 할 수 있습니다."
+}
+
+---
+
+### 분쟁 내용
+
+**A의 이야기:**
+${storyA}
+
+**B의 이야기:**
+${storyB}
+`;
 
             const payload = {
                 contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: { maxOutputTokens: 8192 }
+                generationConfig: { 
+                    maxOutputTokens: 8192,
+                    responseMimeType: "application/json",
+                }
             };
             
             try {
@@ -413,15 +423,16 @@
                     throw new Error(`AI가 응답 생성을 중단했습니다. (사유: ${candidate.finishReason})`);
                 }
 
-                const judgmentText = candidate.content.parts[0].text;
+                const judgmentJsonText = candidate.content.parts[0].text;
+                const judgmentData = JSON.parse(judgmentJsonText);
                 
                 resultStoryA.textContent = storyA;
                 resultStoryB.textContent = storyB;
                 
-                // Store raw text for sharing
-                aiJudgmentContainer.dataset.rawText = judgmentText;
-                // Parse and style the judgment for display
-                aiJudgmentContainer.innerHTML = parseAndStyleJudgment(judgmentText);
+                // Store raw JSON for sharing
+                aiJudgmentContainer.dataset.rawJson = judgmentJsonText;
+                // Create and style the judgment HTML from JSON data
+                aiJudgmentContainer.innerHTML = createResultHtmlFromJson(judgmentData);
 
                 showPage('page-result');
 
