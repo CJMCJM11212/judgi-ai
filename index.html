@@ -196,7 +196,12 @@
 
     </div>
 
-    <script>
+    <script type="module">
+        // --- Firebase SDK Imports ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, addDoc, updateDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
         // --- DOM Elements ---
         const pages = document.querySelectorAll('.page');
         const storyAInput = document.getElementById('story-a');
@@ -224,7 +229,10 @@
         const agreeB = document.getElementById('agree-b');
         const resultTitleContainer = document.getElementById('result-title-container');
 
+        // --- Global State & Firebase ---
+        let db;
         let state = {
+            disputeId: null,
             nameMe: "나",
             nameOpponent: "상대",
             storyA: "",
@@ -243,56 +251,68 @@
             box.style.display = 'block';
             setTimeout(() => { box.style.display = 'none'; }, duration);
         }
+        
+        // --- Firebase Initialization ---
+        async function initFirebase() {
+            try {
+                // These global variables are provided by the environment.
+                const firebaseConfig = JSON.parse(__firebase_config);
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                const auth = getAuth(app);
+                await signInAnonymously(auth);
+                console.log("Firebase initialized and user signed in anonymously.");
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                showMessage("서비스 초기화에 실패했습니다. 새로고침 해주세요.", true);
+            }
+        }
+
 
         // --- Core Logic ---
-        window.onload = function() {
+        async function handlePageLoad() {
+            await initFirebase();
             const params = new URLSearchParams(window.location.search);
-            const p = {
-                storyA: params.get('sA'),
-                storyB: params.get('sB'),
-                nameMe: params.get('nM'),
-                nameOpponent: params.get('nO'),
-                sharedJson: params.get('sJ')
-            };
+            state.disputeId = params.get('id');
 
-            if (p.storyA && p.storyB && p.nameMe && p.nameOpponent && p.sharedJson) {
-                // Shared result view
-                try {
-                    state.nameMe = decodeURIComponent(atob(p.nameMe));
-                    state.nameOpponent = decodeURIComponent(atob(p.nameOpponent));
-                    const judgmentData = JSON.parse(decodeURIComponent(atob(p.sharedJson)));
-                    aiJudgmentContainer.innerHTML = createResultHtmlFromJson(judgmentData, state.nameMe, state.nameOpponent);
-                    resultTitleContainer.innerHTML = createResultTitle(judgmentData, state.nameMe, state.nameOpponent);
-                    document.getElementById('main-header').style.display = 'none';
-                    document.getElementById('result-buttons').style.display = 'none';
-                    showPage('page-result');
-                } catch (e) {
-                    console.error("Failed to decode shared result:", e);
-                    showMessage("잘못된 공유 링크입니다.", true);
-                    window.history.replaceState({}, '', window.location.pathname);
-                    showPage('page-a-input');
-                }
-            } else if (p.storyA && p.nameMe && p.nameOpponent) {
-                // B's input view
-                try {
-                    state.storyA = decodeURIComponent(atob(p.storyA));
-                    state.nameMe = decodeURIComponent(atob(p.nameOpponent)); // B is now "me"
-                    state.nameOpponent = decodeURIComponent(atob(p.nameMe)); // A is now "opponent"
-                    
-                    nameMeInputB.value = state.nameMe;
-                    nameOpponentDisplayB.textContent = state.nameOpponent;
-                    storyADisplay.textContent = state.storyA;
-                    showPage('page-b-input');
-                } catch (e) {
-                    console.error("Failed to decode story A:", e);
-                    showMessage("잘못된 링크입니다. 처음부터 다시 시작해주세요.", true);
-                    window.history.replaceState({}, '', window.location.pathname);
+            if (state.disputeId) {
+                // This is a shared link (either for B to input, or to view result)
+                const docRef = doc(db, "disputes", state.disputeId);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data.status === 'complete') {
+                        // Result view
+                        state.nameMe = data.nameA;
+                        state.nameOpponent = data.nameB;
+                        aiJudgmentContainer.innerHTML = createResultHtmlFromJson(data.judgment, data.nameA, data.nameB);
+                        resultTitleContainer.innerHTML = createResultTitle(data.judgment, data.nameA, data.nameB);
+                        document.getElementById('main-header').style.display = 'none';
+                        document.getElementById('result-buttons').style.display = 'none';
+                        showPage('page-result');
+                    } else {
+                        // B's input view
+                        state.storyA = data.storyA;
+                        state.nameMe = data.nameB;
+                        state.nameOpponent = data.nameA;
+                        
+                        nameMeInputB.value = state.nameMe;
+                        nameOpponentDisplayB.textContent = state.nameOpponent;
+                        storyADisplay.textContent = state.storyA;
+                        showPage('page-b-input');
+                    }
+                } else {
+                    showMessage("유효하지 않은 링크입니다.", true);
                     showPage('page-a-input');
                 }
             } else {
+                // Start new dispute
                 showPage('page-a-input');
             }
-        };
+        }
+        
+        window.onload = handlePageLoad;
 
         // --- Event Listeners ---
         editNameMeA.addEventListener('click', () => {
@@ -313,28 +333,31 @@
             submitBButton.disabled = !agreeB.checked;
         });
 
-        submitAButton.addEventListener('click', () => {
-            state.storyA = storyAInput.value.trim();
-            state.nameMe = nameMeInputA.value.trim();
-            state.nameOpponent = nameOpponentInputA.value.trim();
+        submitAButton.addEventListener('click', async () => {
+            const storyA = storyAInput.value.trim();
+            const nameMe = nameMeInputA.value.trim();
+            const nameOpponent = nameOpponentInputA.value.trim();
 
-            if (!state.storyA) {
-                showMessage("당신의 이야기를 입력해주세요.", true);
+            if (!storyA || !nameMe || !nameOpponent) {
+                showMessage("이름과 이야기를 모두 입력해주세요.", true);
                 return;
             }
-            if (!state.nameMe || !state.nameOpponent) {
-                showMessage("이름을 모두 입력해주세요.", true);
-                return;
+            
+            try {
+                const docRef = await addDoc(collection(db, "disputes"), {
+                    nameA: nameMe,
+                    nameB: nameOpponent,
+                    storyA: storyA,
+                    status: 'pending',
+                    createdAt: serverTimestamp()
+                });
+                const link = `${window.location.origin}${window.location.pathname}?id=${docRef.id}`;
+                linkForBInput.value = link;
+                showPage('page-a-link');
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                showMessage("링크 생성에 실패했습니다. 다시 시도해주세요.", true);
             }
-
-            const encoded = {
-                sA: btoa(encodeURIComponent(state.storyA)),
-                nM: btoa(encodeURIComponent(state.nameMe)),
-                nO: btoa(encodeURIComponent(state.nameOpponent))
-            };
-            const link = `${window.location.origin}${window.location.pathname}?sA=${encoded.sA}&nM=${encoded.nM}&nO=${encoded.nO}`;
-            linkForBInput.value = link;
-            showPage('page-a-link');
         });
 
         submitBButton.addEventListener('click', () => {
@@ -352,15 +375,7 @@
         });
 
         shareResultButton.addEventListener('click', () => {
-            const judgmentJson = aiJudgmentContainer.dataset.rawJson;
-            const encoded = {
-                sA: btoa(encodeURIComponent(state.storyA)),
-                sB: btoa(encodeURIComponent(state.storyB)),
-                nM: btoa(encodeURIComponent(state.nameMe)),
-                nO: btoa(encodeURIComponent(state.nameOpponent)),
-                sJ: btoa(encodeURIComponent(judgmentJson))
-            };
-            const link = `${window.location.origin}${window.location.pathname}?sA=${encoded.sA}&sB=${encoded.sB}&nM=${encoded.nM}&nO=${encoded.nO}&sJ=${encoded.sJ}`;
+            const link = `${window.location.origin}${window.location.pathname}?id=${state.disputeId}`;
             shareLinkInput.value = link;
             showPage('page-share-link');
         });
@@ -385,10 +400,10 @@
             const winner = responsibilityA > responsibilityB ? nameA : nameB;
             const loser = responsibilityA > responsibilityB ? nameB : nameA;
             if (responsibilityA === responsibilityB) {
-                return `<h2 class="text-3xl font-bold text-gray-800">이번 분쟁은 <span class="text-yellow-500">두 분 모두의 잘못</span>입니다.</h2>`;
+                return `<h2 class="text-3xl font-bold text-gray-800">이번 분쟁은 <span class="text-yellow-500">두 분 모두의 잘못</span>이야.</h2>`;
             }
-            return `<h2 class="text-3xl font-bold text-gray-800">이번 분쟁은 <span class="text-red-500">${winner}의 잘못</span>입니다.</h2>
-                    <p class="text-gray-600 mt-2">${loser}님께 진심으로 사과해주세요.</p>`;
+            return `<h2 class="text-3xl font-bold text-gray-800">이번 분쟁은 <span class="text-red-500">${winner}의 잘못</span>이네.</h2>
+                    <p class="text-gray-600 mt-2">${loser}한테 진심으로 사과해라.</p>`;
         }
 
         function createResultHtmlFromJson(data, nameA, nameB) {
@@ -434,34 +449,31 @@
         async function getAiJudgment(storyA, storyB, nameA, nameB) {
             showPage('page-loading');
             
-            state.storyA = storyA;
-            state.storyB = storyB;
-            state.nameMe = nameB; // The current user is B
-            state.nameOpponent = nameA;
-
-            const apiKey = "AIzaSyAsGXTqp5L0pTc-FFWV63yJ-ofKV8Xm_Gw";
+            const apiKey = ""; // API Key is handled by the environment.
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
 
             const prompt = `
-당신은 매우 공정하고 객관적인 AI 심판입니다. 당신의 임무는 ${nameA}(이하 A)와 ${nameB}(이하 B) 사이의 분쟁을 분석하는 것입니다.
-오직 제공된 정보에만 입각하여 판단하고, 답변은 반드시 다음 JSON 형식에 맞춰 한국어로 작성해주세요. 다른 설명 없이 JSON 객체만 반환해야 합니다.
+너는 싸움 구경을 제일 좋아하는 친구야. 아주 솔직하고 직설적으로, 반말로 두 사람의 분쟁을 분석해줘.
+${nameA}와 ${nameB} 사이의 문제인데, 누가 더 잘못했는지, 왜 그렇게 생각하는지 가감없이 말해줘.
+답변은 반드시 다음 JSON 형식에 맞춰서, 다른 설명 없이 JSON 객체만 반환해야 해.
+JSON 내부의 모든 텍스트는 반드시 반말로 작성하고, 'A', 'B' 대신에 '${nameA}', '${nameB}'라는 실제 이름을 사용해줘.
 
 {
   "responsibilityA": 0,
   "responsibilityB": 0,
-  "objective": "사건의 사실 관계, 행동의 순서 등 객관적인 데이터만을 기반으로 상황을 분석해주세요.",
-  "general": "이러한 상황에서 사회 구성원들이 보편적으로 어떻게 생각하고 판단하는지에 대한 일반적인 관점을 설명해주세요.",
-  "average": "비슷한 갈등을 겪는 평균적인 사람들의 반응과 행동 패턴을 기반으로 상황을 분석해주세요.",
-  "statistical": "만약 관련 통계나 데이터가 있다면, 이를 기반으로 한 분석을 제공해주세요. 없다면, 통계적으로 볼 때 어떤 결과가 더 흔한지 추론해주세요.",
-  "advice": "분석 결과, 더 큰 잘못을 한 쪽이 어떻게 행동했어야 하는지에 대한 구체적인 조언을 해주세요."
+  "objective": "객관적인 사실만 놓고 봤을 때 상황이 어떤지 분석해줘.",
+  "general": "보통 사람들, 그러니까 내 주변 친구들 같으면 이 상황을 어떻게 볼 것 같은지 말해줘.",
+  "average": "보통 이런 비슷한 싸움에서는 평균적으로 누가 더 잘못하는 경우가 많은지 알려줘.",
+  "statistical": "통계까지는 아니더라도, 확률적으로 봤을 때 누가 더 문제의 원인일 가능성이 높은지 말해줘.",
+  "advice": "그래서 결론적으로, 더 잘못한 쪽이 어떻게 행동했어야 하는지 알려줘."
 }
 
 ---
 ### 분쟁 내용
-**A (${nameA})의 의견:**
+**${nameA}의 의견:**
 ${storyA}
 
-**B (${nameB})의 의견:**
+**${nameB}의 의견:**
 ${storyB}
 `;
 
@@ -496,6 +508,14 @@ ${storyB}
                 const judgmentJsonText = candidate.content.parts[0].text;
                 const judgmentData = JSON.parse(judgmentJsonText);
                 
+                // Update the document in Firestore with the result
+                const docRef = doc(db, "disputes", state.disputeId);
+                await updateDoc(docRef, {
+                    storyB: storyB,
+                    judgment: judgmentData,
+                    status: 'complete'
+                });
+
                 aiJudgmentContainer.dataset.rawJson = judgmentJsonText;
                 aiJudgmentContainer.innerHTML = createResultHtmlFromJson(judgmentData, nameA, nameB);
                 resultTitleContainer.innerHTML = createResultTitle(judgmentData, nameA, nameB);
