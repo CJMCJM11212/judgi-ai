@@ -162,7 +162,7 @@
             document.getElementById(pageId).classList.add('active');
         }
 
-        function showMessage(text, duration = 3000) {
+        function showMessage(text, duration = 4000) {
             messageBox.textContent = text;
             messageBox.style.display = 'block';
             setTimeout(() => {
@@ -273,13 +273,12 @@
         }
 
 
-        // --- AI Judgment Function (REVISED) ---
+        // --- AI Judgment Function (REVISED & IMPROVED) ---
         async function getAiJudgment(storyA, storyB) {
             showPage('page-loading');
             
-            // IMPORTANT: Replace with your actual API key or use environment variables.
             // For this environment, an empty string will be handled automatically.
-            const apiKey = ""; 
+            const apiKey = "AIzaSyAbowHACEpR8PyKDxuoDCamj2rWmXUUT2s"; 
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
             const prompt = `
@@ -334,7 +333,10 @@ ${storyB}
                 if (!response.ok) {
                     const errorBody = await response.json();
                     console.error("API Error Body:", errorBody);
-                    throw new Error(`API 요청 실패: ${response.status} ${response.statusText}`);
+                    // Attach the error body to the error object for more detailed logging
+                    const apiError = new Error(`API 요청 실패: ${response.status} ${response.statusText}`);
+                    apiError.body = errorBody;
+                    throw apiError;
                 }
 
                 const result = await response.json();
@@ -342,7 +344,7 @@ ${storyB}
                 // --- Robust API Response Handling ---
                 const candidate = result.candidates?.[0];
                 if (!candidate) {
-                    throw new Error("AI로부터 유효한 응답을 받지 못했습니다. (No candidates)");
+                    throw new Error("AI로부터 유효한 응답을 받지 못했습니다. (응답 후보 없음)");
                 }
 
                 if (candidate.finishReason === 'SAFETY') {
@@ -367,8 +369,15 @@ ${storyB}
 
             } catch (error) {
                 console.error("AI 판단 요청 중 오류 발생:", error);
-                showMessage("AI 분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
-                // Go back to B's input page on error
+                
+                // Provide more specific error messages to the user
+                let userMessage = "AI 분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+                if (error.body && error.body.error && error.body.error.message) {
+                    // Show a more detailed error if available from the API response
+                    userMessage = `AI 분석 오류: ${error.body.error.message}`;
+                }
+                
+                showMessage(userMessage);
                 showPage('page-b-input');
             }
         }
