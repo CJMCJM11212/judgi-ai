@@ -235,12 +235,51 @@
             });
         });
 
+        /**
+         * Converts a simple markdown-like text to HTML.
+         * @param {string} text - The text to convert.
+         * @returns {string} - The converted HTML string.
+         */
+        function markdownToHtml(text) {
+            const lines = text.split('\n').filter(line => line.trim() !== '');
+            let html = '';
+            let inList = false;
 
-        // --- AI Judgment Function ---
+            for (const line of lines) {
+                const trimmedLine = line.trim();
+                
+                if (trimmedLine.startsWith('###')) {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    html += `<h3 class="text-xl font-bold text-blue-800 mb-4 mt-6">${trimmedLine.replace(/###\s*/, '')}</h3>`;
+                } else if (trimmedLine.startsWith('**')) {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    html += `<p class="mt-4"><strong class="font-semibold text-gray-800">${trimmedLine.replace(/\*\*/g, '')}</strong></p>`;
+                } else if (trimmedLine.startsWith('* ')) {
+                    if (!inList) {
+                        html += '<ul class="list-disc list-inside space-y-2 mt-2 text-gray-700">';
+                        inList = true;
+                    }
+                    // Handle nested bolding like '* **A의 책임**: ...'
+                    const listItem = trimmedLine.substring(2).replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-800">$1</strong>');
+                    html += `<li>${listItem}</li>`;
+                } else {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    html += `<p class="text-gray-600 mt-2">${trimmedLine}</p>`;
+                }
+            }
+
+            if (inList) { html += '</ul>'; }
+            return html;
+        }
+
+
+        // --- AI Judgment Function (REVISED) ---
         async function getAiJudgment(storyA, storyB) {
             showPage('page-loading');
             
-            const apiKey = "AIzaSyAWSc6p29J5o0Cp9hGDWuwIxOkE2HKJstw"; // API 키를 적용했습니다.
+            // IMPORTANT: Replace with your actual API key or use environment variables.
+            // For this environment, an empty string will be handled automatically.
+            const apiKey = ""; 
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
             const prompt = `
@@ -299,22 +338,30 @@ ${storyB}
                 }
 
                 const result = await response.json();
-                const judgmentText = result.candidates[0].content.parts[0].text;
                 
-                // Display results
+                // --- Robust API Response Handling ---
+                const candidate = result.candidates?.[0];
+                if (!candidate) {
+                    throw new Error("AI로부터 유효한 응답을 받지 못했습니다. (No candidates)");
+                }
+
+                if (candidate.finishReason === 'SAFETY') {
+                     showMessage("AI가 안전상의 이유로 답변을 생성할 수 없습니다. 내용을 수정하여 다시 시도해주세요.");
+                     showPage('page-b-input'); // Go back to input page
+                     return;
+                }
+
+                const judgmentText = candidate.content?.parts?.[0]?.text;
+                if (!judgmentText) {
+                    throw new Error("AI 응답 내용이 비어있습니다.");
+                }
+                
+                // --- Display results ---
                 resultStoryA.textContent = storyA;
                 resultStoryB.textContent = storyB;
                 
-                // Simple markdown to HTML conversion
-                let htmlResult = judgmentText
-                    .replace(/### (.*)/g, '<h3 class="text-xl font-bold text-blue-800 mb-4">$1</h3>')
-                    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-800">$1</strong>')
-                    .replace(/\* (.*):/g, '<p class="mt-2"><strong class="font-semibold text-gray-700">$1:</strong></p>')
-                    .replace(/\* (.*)/g, '<li class="ml-5 list-disc">$1</li>')
-                    .replace(/(\r\n|\n|\r)/gm, "<br>");
-
-
-                aiJudgmentContainer.innerHTML = htmlResult;
+                // Use the new markdownToHtml function for reliable parsing
+                aiJudgmentContainer.innerHTML = markdownToHtml(judgmentText);
 
                 showPage('page-result');
 
