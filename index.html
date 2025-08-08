@@ -100,6 +100,12 @@
                     <input id="name-opponent-input-a" class="name-input text-lg w-full" value="상대">
                 </div>
                 <textarea id="story-a" class="w-full p-4 border border-gray-300 rounded-lg h-48 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50" placeholder="여기에 상황을 입력하세요..."></textarea>
+                <!-- Image upload for A -->
+                <div class="p-4 bg-slate-50 rounded-lg">
+                    <label class="text-gray-600 mb-2 block font-semibold">증빙 이미지 (선택)</label>
+                    <input id="images-a-input" type="file" accept="image/*" multiple class="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                    <div id="images-a-preview" class="mt-3 grid grid-cols-3 gap-2"></div>
+                </div>
                 <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <label class="flex items-center">
                         <input type="checkbox" id="agree-a" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
@@ -136,8 +142,16 @@
                 <div class="p-4 bg-slate-50 rounded-lg">
                     <h3 class="font-bold text-lg text-gray-700 mb-2"><span id="name-opponent-display-b">상대</span>의 의견</h3>
                     <div id="story-a-display" class="w-full p-3 border border-gray-200 bg-white rounded-lg h-32 overflow-y-auto text-sm"></div>
+                    <!-- A's images shown to B -->
+                    <div id="images-a-display" class="mt-2 grid grid-cols-3 gap-2"></div>
                 </div>
                 <textarea id="story-b" class="w-full p-4 border border-gray-300 rounded-lg h-48 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50" placeholder="여기에 당신의 입장을 입력하세요..."></textarea>
+                <!-- Image upload for B -->
+                <div class="p-4 bg-slate-50 rounded-lg">
+                    <label class="text-gray-600 mb-2 block font-semibold">증빙 이미지 (선택)</label>
+                    <input id="images-b-input" type="file" accept="image/*" multiple class="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                    <div id="images-b-preview" class="mt-3 grid grid-cols-3 gap-2"></div>
+                </div>
                  <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <label class="flex items-center">
                         <input type="checkbox" id="agree-b" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
@@ -183,6 +197,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, addDoc, getDoc, updateDoc, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
         // --- DOM Elements ---
         const pages = document.querySelectorAll('.page');
@@ -207,11 +222,22 @@
         const agreeB = document.getElementById('agree-b');
         const resultTitleContainer = document.getElementById('result-title-container');
         const resultCardContent = document.getElementById('result-card-content');
+        // New image-related elements
+        const imagesAInput = document.getElementById('images-a-input');
+        const imagesAPreview = document.getElementById('images-a-preview');
+        const imagesBInput = document.getElementById('images-b-input');
+        const imagesBPreview = document.getElementById('images-b-preview');
+        const imagesADisplay = document.getElementById('images-a-display');
 
         // --- Global State ---
         let disputeId = null;
         let db, auth;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'ai-judge-21e60';
+        let storageSvc;
+        let selectedImagesA = [];
+        let selectedImagesB = [];
+        let loadedImagesAUrls = [];
+        let uploadedImagesBUrls = [];
 
         // --- Utility Functions ---
         function showPage(pageId) {
@@ -240,6 +266,47 @@
             document.body.removeChild(tempInput);
         }
 
+        // Image helpers
+        function setupImageInput(inputEl, previewEl, storeArray) {
+            if (!inputEl) return;
+            inputEl.addEventListener('change', () => {
+                storeArray.length = 0;
+                previewEl.innerHTML = '';
+                const files = Array.from(inputEl.files || []);
+                files.forEach((file) => {
+                    if (!file.type.startsWith('image/')) return;
+                    storeArray.push(file);
+                    const url = URL.createObjectURL(file);
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.alt = '선택한 이미지 미리보기';
+                    img.loading = 'lazy';
+                    img.setAttribute('crossorigin', 'anonymous');
+                    img.className = 'w-full h-24 object-cover rounded';
+                    img.onload = () => URL.revokeObjectURL(url);
+                    previewEl.appendChild(img);
+                });
+            });
+        }
+
+        async function uploadImagesAndGetUrls(disputeId, side, files) {
+            if (!files || files.length === 0) return [];
+            const folder = `disputes/${disputeId}/${side}`;
+            const uploads = files.map(async (file, index) => {
+                const safeName = `${Date.now()}_${index}_${file.name}`;
+                const ref = storageRef(storageSvc, `${folder}/${safeName}`);
+                await uploadBytes(ref, file, { contentType: file.type, cacheControl: 'public,max-age=31536000' });
+                const url = await getDownloadURL(ref);
+                return url;
+            });
+            return Promise.all(uploads);
+        }
+
+        function renderImageGrid(urls) {
+            if (!urls || urls.length === 0) return '';
+            return urls.map(url => `<img src="${url}" alt="첨부 이미지" loading="lazy" crossorigin="anonymous" class="w-full h-24 object-cover rounded"/>`).join('');
+        }
+        
         // --- Core Logic ---
         async function initialize() {
             try {
@@ -256,6 +323,7 @@
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
+                storageSvc = getStorage(app);
                 setLogLevel('debug');
 
                 // Sign in the user
@@ -298,6 +366,10 @@
                         nameMeInputB.value = data.nameB;
                         nameOpponentDisplayB.textContent = data.nameA;
                         storyADisplay.textContent = data.storyA;
+                        loadedImagesAUrls = Array.isArray(data.imagesA) ? data.imagesA : [];
+                        if (imagesADisplay) {
+                            imagesADisplay.innerHTML = renderImageGrid(loadedImagesAUrls);
+                        }
                         showPage('page-b-input');
                     } else {
                          showMessage("이미 분석이 진행중이거나 완료된 분쟁입니다.", false);
@@ -327,6 +399,9 @@
         // --- Event Listeners ---
         agreeA.addEventListener('change', () => { submitAButton.disabled = !agreeA.checked; });
         agreeB.addEventListener('change', () => { submitBButton.disabled = !agreeB.checked; });
+        // Image input listeners
+        setupImageInput(imagesAInput, imagesAPreview, selectedImagesA);
+        setupImageInput(imagesBInput, imagesBPreview, selectedImagesB);
 
         submitAButton.addEventListener('click', async () => {
             const nameA = nameMeInputA.value.trim();
@@ -354,6 +429,17 @@
                 });
                 
                 disputeId = docRef.id;
+
+                // Upload A images if any
+                if (selectedImagesA.length > 0) {
+                    const urls = await uploadImagesAndGetUrls(disputeId, 'a', selectedImagesA);
+                    try {
+                        await updateDoc(docRef, { imagesA: urls });
+                    } catch (e) {
+                        console.warn('Failed to save imagesA URLs:', e);
+                    }
+                }
+
                 const link = `${window.location.origin}${window.location.pathname}?disputeId=${disputeId}`;
                 linkForBInput.value = link;
                 showPage('page-a-link');
@@ -382,9 +468,15 @@
 
                 const originalData = docSnap.data();
 
+                // Upload B images first
+                uploadedImagesBUrls = selectedImagesB.length > 0
+                    ? await uploadImagesAndGetUrls(disputeId, 'b', selectedImagesB)
+                    : [];
+
                 await updateDoc(docRef, {
                     nameB: updatedNameB,
                     storyB: storyB,
+                    imagesB: uploadedImagesBUrls,
                     status: 'pending_analysis'
                 });
 
@@ -462,6 +554,7 @@
                         ${nameA}님의 최초 의견
                     </h4>
                     <div class="text-gray-600 leading-relaxed space-y-2 text-sm bg-blue-50 p-3 rounded-md">${storyA.replace(/\n/g, '<br>')}</div>
+                    ${Array.isArray(disputeData.imagesA) && disputeData.imagesA.length ? `<div class=\"mt-3 grid grid-cols-3 gap-2\">${renderImageGrid(disputeData.imagesA)}</div>` : ''}
                 </div>
                 <div class="p-5 bg-white rounded-xl border shadow-sm">
                     <h4 class="text-lg font-bold text-gray-800 mb-3 flex items-center">
@@ -469,6 +562,7 @@
                         ${nameB}님의 최초 의견
                     </h4>
                     <div class="text-gray-600 leading-relaxed space-y-2 text-sm bg-red-50 p-3 rounded-md">${storyB.replace(/\n/g, '<br>')}</div>
+                    ${Array.isArray(disputeData.imagesB) && disputeData.imagesB.length ? `<div class=\"mt-3 grid grid-cols-3 gap-2\">${renderImageGrid(disputeData.imagesB)}</div>` : ''}
                 </div>
             `;
 
@@ -502,6 +596,10 @@
 책임 비율(responsibilityA, responsibilityB)은 반드시 합쳐서 100이 되도록 정밀하게 산정해야 한다.
 답변은 반드시 다음 JSON 형식에 맞춰서, 다른 설명 없이 JSON 객체만 반환해야 한다.
 모든 텍스트는 친절하고 이해하기 쉬운 존댓말로 작성하며, ${nameA}와 ${nameB}라는 이름을 사용해야 한다.
+
+[참고] 당사자들이 제출한 이미지 링크가 다음에 포함될 수 있으나, 외부 링크의 내용을 직접 확인할 수 없을 경우 텍스트 설명만으로 판단하되, 이미지가 존재했다는 사실 자체는 고려하라.
+A 첨부 이미지: ${(loadedImagesAUrls || []).join(', ') || '없음'}
+B 첨부 이미지: ${(uploadedImagesBUrls || []).join(', ') || '없음'}
 
 {
   "responsibilityA": 0,
@@ -564,7 +662,9 @@ ${storyB}
                     nameA: nameA,
                     nameB: nameB,
                     storyA: storyA,
-                    storyB: storyB
+                    storyB: storyB,
+                    imagesA: loadedImagesAUrls,
+                    imagesB: uploadedImagesBUrls
                 };
                 aiJudgmentContainer.innerHTML = createResultHtmlFromJson(disputeDataForRender);
                 resultTitleContainer.innerHTML = createResultTitle(judgmentData, nameA, nameB);
